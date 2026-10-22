@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Guard Desktop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Native macOS Draggable Titlebar Strip -->
+  <header class="window-drag-header">
+    <div class="drag-bar-left">
+      <span class="drag-logo-icon">🛡️</span>
+      <span class="drag-title">SECURITY GUARD // DEFENSE HUB</span>
+      <span class="drag-sep">/</span>
+      <span class="drag-subtitle">BeaverTail & Supply-Chain Protection</span>
+    </div>
+    <div class="drag-bar-center"></div>
+    <div class="drag-bar-right">
+      <span class="engine-tag" id="engineStatusTag">
+        <span class="status-indicator-dot"></span> Guard 2.2.0 Active
+      </span>
+    </div>
+  </header>
+
+  <div class="window-frame">
+    <!-- Main Application Container -->
+    <div class="app-card">
+      
+      <!-- Left & Center: Main Stage -->
+      <div class="main-stage">
+        
+        <!-- Top Search & Filter Bar -->
+        <div class="top-nav">
+          <button class="menu-icon-btn" id="btnToggleMenu" title="Menu">
+            <span class="menu-bar"></span>
+            <span class="menu-bar short"></span>
+          </button>
+
+          <div class="search-pill">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="globalSearchInput" placeholder="Search repositories, files, or threats...">
+            <div class="search-dropdown-divider"></div>
+            <div class="search-scope-select">
+              <select id="searchScopeSelect">
+                <option value="all">All Targets</option>
+                <option value="github">GitHub Only</option>
+                <option value="local">Local PC Only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Content Body -->
+        <div class="stage-scrollable">
+
+          <!-- TAB: DASHBOARD -->
+          <div class="view-pane active" id="view-dashboard">
+            
+            <!-- Hero Turquoise Banner -->
+            <div class="hero-banner">
+              <div class="hero-left">
+                <div class="hero-icon-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                  </svg>
+                </div>
+                <div class="hero-title-group">
+                  <h2 class="hero-title">Security Guard</h2>
+                  <span class="hero-subtitle">Defense Engine</span>
+                </div>
+              </div>
+
+              <div class="hero-middle">
+                <div class="category-header">
+                  <h4>Scan Matrix Targets</h4>
+                  <p>Automated supply-chain, trojan & malware defense</p>
+                </div>
+                <div class="category-circles">
+                  <div class="cat-circle-wrap" title="GitHub Repositories">
+                    <div class="cat-circle cat-gh">🐙</div>
+                    <span class="cat-label">GitHub</span>
+                  </div>
+                  <div class="cat-circle-wrap" title="Local PC Workstation">
+                    <div class="cat-circle cat-pc">💻</div>
+                    <span class="cat-label">Local PC</span>
+                  </div>
+                  <div class="cat-circle-wrap" title="Add Custom Directory" id="heroBtnAddPath">
+                    <div class="cat-circle cat-add">+</div>
+                    <span class="cat-label">Add Path</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hero-right">
+                <div class="recommended-box">
+                  <h4>Recommended</h4>
+                  <p>Execute full sweep across all user public & private repositories and workstation folders.</p>
+                  <button class="btn-hero-action" id="btnHeroRunScan">Run Full Scan</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Repositories & Workspaces Title + Filter Pills -->
+            <div class="section-header-row">
+              <h3 class="section-title">Protected Repositories & Workspaces</h3>
+              <div class="pill-tabs" id="repoFilterPills">
+                <button class="pill-tab active" data-filter="all">All (<span id="countAll">0</span>)</button>
+                <button class="pill-tab" data-filter="private">🔒 Private (<span id="countPrivate">0</span>)</button>
+                <button class="pill-tab" data-filter="public">🌐 Public (<span id="countPublic">0</span>)</button>
+                <button class="pill-tab" data-filter="local">💻 Local PC (<span id="countLocal">4</span>)</button>
+              </div>
+            </div>
+
+            <!-- Colored Pill Cards List -->
+            <div class="colored-cards-list" id="dashboardCardsList">
+              <!-- Dynamically populated rows styled as in reference image -->
+              <div class="loading-state-card">
+                <div class="spinner-dot"></div>
+                <span>Loading repositories and workstation watchpoints...</span>
+              </div>
+            </div>
+
+            <!-- Load More Button -->
+            <div class="load-more-row" id="loadMoreRow" style="display:none;">
+              <button class="btn-load-more" id="btnLoadMoreRepos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="16" height="16">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+                Load More Repositories
+                <span class="load-more-count" id="loadMoreCount"></span>
+              </button>
+            </div>
+
+            <!-- Details Explainer Section -->
+            <div class="details-section">
+              <div class="details-left">
+                <h4 class="details-heading">Engine Inspection Scope</h4>
+                <p class="details-desc">
+                  Guard analyzes VS Code configurations, CI/CD pipeline integrity, dependency blocklists, and executes YARA heuristic scanning to prevent compromised packages.
+                </p>
+                <a href="#" class="details-link" id="btnLearnMore">How it works &rarr;</a>
+              </div>
+              <div class="details-right-actions">
+                <button class="btn-subtle" id="btnSyncCloudData">Sync GitHub Repos</button>
+                <button class="btn-subtle" id="btnTriggerLocalScan">Scan Local Files</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB: GITHUB CLOUD REPOSITORIES -->
+          <div class="view-pane" id="view-github">
+            <div class="pane-headline-row">
+              <div>
+                <h2 class="pane-headline">GitHub Cloud Defense</h2>
+                <p class="pane-sub">Authenticated deep inspection for all public and private repositories.</p>
+              </div>
+              <div class="pane-actions">
+                <button class="btn-pill-secondary" id="btnSelectAllRepos">Select All</button>
+                <button class="btn-pill-primary" id="btnScanSelectedFromTab">Scan Selected (<span id="selectedCountTab">0</span>)</button>
+              </div>
+            </div>
+
+            <div class="github-repo-grid" id="githubRepoFullList">
+              <!-- Full grid of repos -->
+            </div>
+          </div>
+
+          <!-- TAB: LOCAL PC WORKSTATION -->
+          <div class="view-pane" id="view-local">
+            <div class="pane-headline-row">
+              <div>
+                <h2 class="pane-headline">Local Workstation Security</h2>
+                <p class="pane-sub">Inspect macOS file directories, developer projects, and persistence mechanisms.</p>
+              </div>
+              <div class="pane-actions">
+                <button class="btn-pill-secondary" id="btnSelectCustomDir">+ Custom Folder</button>
+                <button class="btn-pill-primary" id="btnRunLocalDirect">Scan Workstation Now</button>
+              </div>
+            </div>
+
+            <div class="local-targets-grid" id="localTargetsContainer">
+              <!-- Targets listed here -->
+            </div>
+          </div>
+
+          <!-- TAB: THREAT REPORTS & AI -->
+          <div class="view-pane" id="view-reports">
+            <div class="pane-headline-row">
+              <div>
+                <h2 class="pane-headline">Threat Intelligence & Reports</h2>
+                <p class="pane-sub">Review audit telemetry, vulnerability findings, and AI remediation plans.</p>
+              </div>
+              <div class="pane-actions">
+                <button class="btn-pill-secondary" id="btnExportJsonTab">Export JSON</button>
+                <button class="btn-pill-secondary" id="btnExportHtmlTab">Export HTML</button>
+                <button class="btn-pill-accent" id="btnGenerateAiTab">✨ Generate AI Report</button>
+              </div>
+            </div>
+
+            <div class="report-overview-row">
+              <div class="stat-bubble bubble-cyan">
+                <span class="bubble-num" id="statScannedCount">0</span>
+                <span class="bubble-label">Scanned</span>
+              </div>
+              <div class="stat-bubble bubble-coral">
+                <span class="bubble-num" id="statThreatCount">0</span>
+                <span class="bubble-label">Threats</span>
+              </div>
+              <div class="stat-bubble bubble-green">
+                <span class="bubble-num" id="statCleanCount">0</span>
+                <span class="bubble-label">Clean</span>
+              </div>
+              <div class="stat-bubble bubble-yellow">
+                <span class="bubble-num" id="statWarningsCount">0</span>
+                <span class="bubble-label">Warnings</span>
+              </div>
+            </div>
+
+            <div class="report-split-grid">
+              <div class="report-left-panel">
+                <h4 class="sub-heading">Audit Breakdown</h4>
+                <div class="findings-list" id="reportFindingsList">
+                  <div class="empty-state-box">
+                    <p>No audit has been run yet. Run a scan from the Dashboard or GitHub tab.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="report-right-panel">
+                <div class="ai-box-header">
+                  <span class="sparkle-icon">🤖</span>
+                  <h4>AI Security Copilot Remediation</h4>
+                  <span class="ai-provider-badge" id="aiProviderBadge">GEMINI</span>
+                </div>
+                <div class="ai-box-content" id="aiAnalysisContainer">
+                  <div class="ai-empty-prompt">
+                    <p>Click <strong>"Generate AI Report"</strong> to evaluate the scan findings and generate a step-by-step risk remediation playbook.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: SETTINGS -->
+          <div class="view-pane" id="view-settings">
+            <div class="pane-headline-row">
+              <div>
+                <h2 class="pane-headline">Settings & Credentials</h2>
+                <p class="pane-sub">Manage AI API keys, GitHub tokens, and scanning sensitivity.</p>
+              </div>
+            </div>
+
+            <div class="settings-cards-grid">
+              <!-- AI Setup Card -->
+              <div class="settings-clean-card">
+                <div class="settings-card-head">
+                  <span class="settings-icon">🤖</span>
+                  <h4>AI API Setup</h4>
+                </div>
+                <div class="form-row">
+                  <label>Provider</label>
+                  <select id="cfgAiProvider" class="soft-input">
+                    <option value="gemini">Google Gemini (Recommended - Free Tier)</option>
+                    <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
+                    <option value="claude">Anthropic Claude (Claude 3.5 Sonnet)</option>
+                    <option value="ollama">Local Ollama (Offline / Private)</option>
+                  </select>
+                </div>
+                <div class="form-row" id="grpApiKey">
+                  <label>API Key</label>
+                  <div class="input-action-wrap">
+                    <input type="password" id="cfgAiApiKey" class="soft-input" placeholder="AIzaSy... or sk-...">
+                    <button class="btn-micro" id="btnToggleKeyVis">Show</button>
+                  </div>
+                  <span class="micro-note">Stored safely in <code>~/.guard/desktop-config.json</code></span>
+                </div>
+                <div class="form-row" id="grpAiModel">
+                  <label>Model Name</label>
+                  <input type="text" id="cfgAiModel" class="soft-input" value="gemini-1.5-flash">
+                </div>
+                <div class="form-row" id="grpOllamaEndpoint" style="display: none;">
+                  <label>Ollama Endpoint</label>
+                  <input type="text" id="cfgOllamaEndpoint" class="soft-input" value="http://localhost:11434">
+                </div>
+                <button class="btn-pill-primary" id="btnSaveAiCfg" style="margin-top: 14px;">Save AI Settings</button>
+                <span class="save-feedback" id="aiFeedbackMsg"></span>
+              </div>
+
+              <!-- GitHub Account Management Card -->
+              <div class="settings-clean-card">
+                <div class="settings-card-head">
+                  <span class="settings-icon">🐙</span>
+                  <h4>GitHub Account Manager</h4>
+                </div>
+
+                <!-- Active account banner -->
+                <div class="auth-status-chip" id="settingsAuthStatusChip">
+                  <span class="dot-online"></span>
+                  <div>
+                    <strong id="settingsGhUserTitle">GitHub CLI Connected</strong>
+                    <p id="settingsGhUserSub">Active Keyring Session</p>
+                  </div>
+                </div>
+
+                <!-- Saved Accounts List -->
+                <div style="margin-top:16px;">
+                  <label style="font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:0.5px;">SAVED ACCOUNTS</label>
+                  <div id="savedAccountsList" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+
+                <!-- Add / Override Token -->
+                <div class="form-row" style="margin-top: 18px;">
+                  <label>Add Account via Personal Access Token</label>
+                  <div class="input-action-wrap">
+                    <input type="password" id="cfgGhToken" class="soft-input" placeholder="ghp_... or gho_... (Requires 'repo' scope)">
+                    <button class="btn-micro" id="btnToggleGhVis">Show</button>
+                  </div>
+                  <span class="micro-note">Needs scopes: <code>repo</code>, <code>read:user</code></span>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap:wrap;">
+                  <button class="btn-pill-primary" id="btnAddGhAccount">+ Add Account</button>
+                  <button class="btn-pill-secondary" id="btnSaveGhCfg">Save Token Only</button>
+                  <button class="btn-pill-outline" id="btnResyncGhCli">Use gh CLI</button>
+                </div>
+                <span class="save-feedback" id="ghFeedbackMsg"></span>
+
+                <!-- Disconnect all -->
+                <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border-light);">
+                  <button class="btn-danger-outline" id="btnDisconnectAll">⚠ Disconnect All Accounts</button>
+                  <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:6px;">Clears stored tokens. GitHub CLI session unaffected.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: ACCOUNT (dedicated GitHub account view) -->
+          <div class="view-pane" id="view-account">
+            <div class="pane-headline-row">
+              <div>
+                <h2 class="pane-headline">GitHub Account Management</h2>
+                <p class="pane-sub">Connect multiple GitHub accounts, switch active identity, and manage access tokens.</p>
+              </div>
+              <div class="pane-actions">
+                <button class="btn-pill-secondary" id="btnRefreshAccounts">↻ Refresh</button>
+                <button class="btn-pill-primary" id="btnOpenAddAccountModal">+ Add Account</button>
+              </div>
+            </div>
+
+            <!-- Connected Account Hero Card -->
+            <div class="account-hero-card" id="accountHeroCard">
+              <div class="account-hero-avatar">
+                <img src="" alt="" id="acctHeroAvatarImg" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
+              </div>
+              <div class="account-hero-info">
+                <div class="account-hero-name" id="acctHeroName">Not Connected</div>
+                <div class="account-hero-handle" id="acctHeroHandle">@unknown</div>
+                <div style="display:flex; gap:8px; margin-top:6px;">
+                  <span class="account-stat-pill"><strong id="acctRepoPub">0</strong> Public Repos</span>
+                  <span class="account-stat-pill"><strong id="acctRepoPriv">0</strong> Private Repos</span>
+                </div>
+              </div>
+              <div class="account-hero-actions">
+                <a href="#" class="btn-pill-secondary" id="acctOpenProfile" target="_blank">Open Profile ↗</a>
+                <button class="btn-danger-outline" id="acctDisconnectBtn">Disconnect</button>
+              </div>
+            </div>
+
+            <!-- All saved accounts grid -->
+            <div style="margin-top:24px;">
+              <h3 style="font-size:14px; font-weight:700; margin-bottom:12px;">All Saved Accounts</h3>
+              <div class="accounts-grid" id="accountsGrid">
+                <div class="empty-state-box"><p>No saved accounts yet. Add one below using your GitHub Personal Access Token.</p></div>
+              </div>
+            </div>
+
+            <!-- Add Account Inline Form -->
+            <div class="add-account-box" id="addAccountBox">
+              <div class="add-account-header">
+                <h4>Connect New GitHub Account</h4>
+              </div>
+              <div class="form-row">
+                <label>Personal Access Token</label>
+                <div class="input-action-wrap">
+                  <input type="password" id="addAccountTokenInput" class="soft-input" placeholder="ghp_... — needs repo + read:user scope">
+                  <button class="btn-micro" id="btnToggleAddTokenVis">Show</button>
+                </div>
+                <span class="micro-note">Your token is stored locally and never sent to external servers.</span>
+              </div>
+              <button class="btn-pill-primary" id="btnConfirmAddAccount" style="margin-top:12px;">Validate &amp; Connect</button>
+              <span class="save-feedback" id="addAccountFeedback"></span>
+            </div>
+          </div>
+
+
+        </div>
+
+        <!-- Bottom Floating Dock -->
+        <div class="bottom-dock-container">
+          <div class="floating-dock">
+            <button class="dock-item active" data-tab="view-dashboard" title="Dashboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span class="dock-label">Home</span>
+              <span class="dock-dot"></span>
+            </button>
+            <button class="dock-item" data-tab="view-github" title="GitHub Cloud Scan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+              </svg>
+              <span class="dock-label">GitHub</span>
+            </button>
+            <button class="dock-item" data-tab="view-account" title="GitHub Accounts">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span class="dock-label">Account</span>
+            </button>
+            <button class="dock-item" data-tab="view-local" title="Local Workstation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <span class="dock-label">Local PC</span>
+            </button>
+            <button class="dock-item" data-tab="view-reports" title="Threat Reports & AI">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              <span class="dock-label">Reports</span>
+            </button>
+            <button class="dock-item" data-tab="view-settings" title="Settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <span class="dock-label">Settings</span>
+            </button>
+
+            <!-- Yellow Quick Action Filter Pill -->
+            <button class="dock-action-yellow" id="btnQuickDockAction">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+              Filter / Scan
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: User Profile & Control Sidebar -->
+      <aside class="right-panel">
+        
+        <!-- User Profile Pill Header -->
+        <div class="user-profile-header">
+          <div class="bell-pill" title="Notifications">
+            🔔
+          </div>
+          <div class="user-profile-info">
+            <span class="user-name-title" id="sideUserName">Webgenius0</span>
+          </div>
+          <div class="user-avatar-circle" id="sideUserAvatar">
+            <img src="" alt="" id="sideAvatarImg">
+          </div>
+        </div>
+
+        <!-- Section: View more ... (Watchpoints & Top Targets) -->
+        <div class="right-section">
+          <div class="right-section-head">
+            <h3>View more</h3>
+            <button class="icon-more-btn">•••</button>
+          </div>
+
+          <div class="side-items-list" id="sideWatchpointList">
+            <div class="side-item-row" data-target="home">
+              <div class="side-item-thumb bg-cyan">
+                🏠
+              </div>
+              <div class="side-item-text">
+                <strong>Home Workspace</strong>
+                <p>Host User System</p>
+              </div>
+              <button class="side-item-plus" title="Quick Scan">+</button>
+            </div>
+
+            <div class="side-item-row" data-target="desktop">
+              <div class="side-item-thumb bg-coral">
+                🖥️
+              </div>
+              <div class="side-item-text">
+                <strong>Desktop Folder</strong>
+                <p>Downloaded scripts</p>
+              </div>
+              <button class="side-item-plus" title="Quick Scan">+</button>
+            </div>
+
+            <div class="side-item-row" data-target="downloads">
+              <div class="side-item-thumb bg-purple">
+                📥
+              </div>
+              <div class="side-item-text">
+                <strong>Downloads Vault</strong>
+                <p>Incoming archives</p>
+              </div>
+              <button class="side-item-plus" title="Quick Scan">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Settings & Filters -->
+        <div class="right-section filter-section">
+          <h3 class="right-section-title">Settings</h3>
+          <p class="filter-by-label">Filter by:</p>
+
+          <div class="custom-checkbox-list">
+            <label class="custom-check-row">
+              <span class="check-title">Scan Private Repos</span>
+              <input type="checkbox" id="chkFilterPrivate" checked>
+              <span class="check-box-yellow"></span>
+            </label>
+
+            <label class="custom-check-row">
+              <span class="check-title">Scan Public Repos</span>
+              <input type="checkbox" id="chkFilterPublic" checked>
+              <span class="check-box-yellow"></span>
+            </label>
+
+            <label class="custom-check-row">
+              <span class="check-title">Supply-Chain & Droppers</span>
+              <input type="checkbox" id="chkFilterSupply" checked>
+              <span class="check-box-yellow"></span>
+            </label>
+
+            <label class="custom-check-row">
+              <span class="check-title">Antivirus (YARA Engine)</span>
+              <input type="checkbox" id="chkFilterAv" checked>
+              <span class="check-box-yellow"></span>
+            </label>
+
+            <label class="custom-check-row">
+              <span class="check-title">Deep Git Commit History</span>
+              <input type="checkbox" id="chkFilterGit">
+              <span class="check-box-yellow"></span>
+            </label>
+          </div>
+
+          <!-- Large Warm Yellow CTA Button -->
+          <button class="btn-yellow-block" id="btnRightApplyFilters">
+            Apply filters & Scan
+          </button>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <!-- Soft Styled Scanner Overlay Modal -->
+    <div class="scanner-soft-modal" id="scannerModal">
+      <div class="scanner-card-box">
+        <div class="scanner-box-head">
+          <div class="pulsing-radar-badge">
+            <div class="radar-ping"></div>
+            🛡️
+          </div>
+          <div>
+            <h3>Security Guard Running</h3>
+            <p id="modalCurrentTarget">Inspecting repository tree...</p>
+          </div>
+          <button class="btn-pill-cancel" id="btnCancelScan">Stop</button>
+        </div>
+
+        <div class="soft-progress-track">
+          <div class="soft-progress-bar" id="modalProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="soft-progress-meta">
+          <span id="modalPercent">0%</span>
+          <span id="modalCount">0 / 0 Targets</span>
+        </div>
+
+        <div class="soft-console-panel">
+          <div class="console-head-bar">
+            <span>AUDIT TELEMETRY STREAM</span>
+            <span class="live-dot"></span>
+          </div>
+          <div class="console-logs" id="modalConsoleLogs">
+            <!-- Console lines -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

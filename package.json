@@ -1,0 +1,24 @@
+{
+  "name": "guard-desktop",
+  "version": "1.0.0",
+  "description": "Security Guard Desktop - Supply-chain, Malware & Host Threat Defense Center with GitHub Auth & AI Analysis",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "postinstall": "node -e \"const fs=require('fs'); const p='node_modules/boolean/package.json'; if(fs.existsSync(p)){ const j=JSON.parse(fs.readFileSync(p,'utf8')); if(j.devDependencies&&j.devDependencies.roboter){ delete j.devDependencies.roboter; fs.writeFileSync(p,JSON.stringify(j,null,2)); } }\""
+  },
+  "keywords": [
+    "security",
+    "malware-scanner",
+    "supply-chain",
+    "github",
+    "electron"
+  ],
+  "author": "Security Guard Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^41.7.1"
+  }
+}
