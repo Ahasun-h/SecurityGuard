@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld('guardAPI', {
   },
   fetchGitHubReposPage: (page, perPage) => ipcRenderer.invoke('github:fetch-repos-page', page, perPage),
   loginGitHubBrowser: () => ipcRenderer.invoke('github:login-browser'),
+  cancelOAuthLogin: () => ipcRenderer.invoke('github:cancel-oauth-login'),
+  onOAuthDeviceCode: (callback) => {
+    ipcRenderer.removeAllListeners('github:oauth-device-code');
+    ipcRenderer.on('github:oauth-device-code', (_event, value) => callback(value));
+  },
   disconnectGitHub: () => ipcRenderer.invoke('github:disconnect'),
   reconnectGitHubCli: () => ipcRenderer.invoke('github:reconnect-cli'),
   getGitHubAccounts: () => ipcRenderer.invoke('github:get-accounts'),

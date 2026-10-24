@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -801,52 +801,213 @@ ipcMain.handle('guard:install', async () => {
 
 // 3. GitHub Auth Status
 
-// GitHub Browser / CLI OAuth Login
-ipcMain.handle('github:login-browser', async () => {
+// GitHub Browser / Universal Device Flow OAuth Login
+let currentOAuthSession = null;
+
+ipcMain.handle('github:cancel-oauth-login', () => {
+  if (currentOAuthSession) {
+    currentOAuthSession.cancelled = true;
+    currentOAuthSession = null;
+  }
+  return { success: true };
+});
+
+ipcMain.handle('github:login-browser', async (event) => {
+  if (currentOAuthSession) {
+    currentOAuthSession.cancelled = true;
+    currentOAuthSession = null;
+  }
+
+  const session = { cancelled: false };
+  currentOAuthSession = session;
+
   try {
-    const { shell } = require('electron');
-    // Run gh auth login with web mode or check existing token
-    const tokenRes = await runExec('gh auth token');
-    if (tokenRes.stdout.trim().startsWith('gh')) {
-      const token = tokenRes.stdout.trim();
-      const profile = await fetchGitHubApi('/user', token);
-      const cfg = loadConfig();
-      const accounts = cfg.githubAccounts || [];
-      const entry = {
-        login: profile.login,
-        name: profile.name || profile.login,
-        avatar_url: profile.avatar_url,
-        public_repos: profile.public_repos,
-        total_private_repos: profile.total_private_repos || 0,
-        html_url: profile.html_url,
-        token: token,
-        addedAt: new Date().toISOString()
-      };
-      const existingIdx = accounts.findIndex(a => a.login === profile.login);
-      if (existingIdx >= 0) accounts[existingIdx] = entry;
-      else accounts.push(entry);
+    // 1. If gh CLI is present and already authenticated, use it immediately
+    try {
+      const tokenRes = await runExec('gh auth token');
+      if (tokenRes.stdout && tokenRes.stdout.trim().startsWith('gh')) {
+        const token = tokenRes.stdout.trim();
+        const profile = await fetchGitHubApi('/user', token);
+        const cfg = loadConfig();
+        const accounts = cfg.githubAccounts || [];
+        const entry = {
+          login: profile.login,
+          name: profile.name || profile.login,
+          avatar_url: profile.avatar_url,
+          public_repos: profile.public_repos,
+          total_private_repos: profile.total_private_repos || 0,
+          html_url: profile.html_url,
+          token: token,
+          addedAt: new Date().toISOString()
+        };
+        const existingIdx = accounts.findIndex(a => a.login === profile.login);
+        if (existingIdx >= 0) accounts[existingIdx] = entry;
+        else accounts.push(entry);
 
-      saveConfig({
-        githubAccounts: accounts,
-        githubToken: token,
-        activeGitHubLogin: profile.login,
-        disconnected: false
+        saveConfig({
+          githubAccounts: accounts,
+          githubToken: token,
+          activeGitHubLogin: profile.login,
+          disconnected: false
+        });
+        currentOAuthSession = null;
+        return { success: true, user: entry, method: 'gh-cli' };
+      }
+    } catch (_) {
+      // gh CLI not available or not logged in, proceed to universal browser device flow
+    }
+
+    // 2. Universal Browser OAuth Flow via GitHub Device Code (Works on ANY OS without requiring gh CLI)
+    const clientId = '178c6fc778ccc68e1d6a';
+    const postData = new URLSearchParams({
+      client_id: clientId,
+      scope: 'repo,read:user,user:email'
+    }).toString();
+
+    const deviceResponse = await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'github.com',
+        path: '/login/device/code',
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData),
+          'User-Agent': 'Security-Guard-Desktop/1.0'
+        }
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          try { resolve(JSON.parse(body)); } catch (e) { reject(e); }
+        });
       });
-      return { success: true, user: entry, method: 'gh-cli' };
+      req.on('error', reject);
+      req.write(postData);
+      req.end();
+    });
+
+    if (!deviceResponse || !deviceResponse.device_code) {
+      throw new Error(deviceResponse?.error_description || 'Failed to initialize GitHub browser authorization.');
     }
 
-    // Otherwise launch browser login via GitHub CLI
-    await runExec('gh auth login --web -h github.com -s repo,read:user');
-    const postToken = await runExec('gh auth token');
-    if (postToken.stdout.trim().startsWith('gh')) {
-      const token = postToken.stdout.trim();
-      const profile = await fetchGitHubApi('/user', token);
-      saveConfig({ githubToken: token, activeGitHubLogin: profile.login, disconnected: false });
-      return { success: true, user: profile, method: 'browser' };
+    const { device_code, user_code, verification_uri, interval = 5, expires_in = 900 } = deviceResponse;
+
+    // Automatically copy code to clipboard
+    try {
+      clipboard.writeText(user_code);
+    } catch (_) {}
+
+    // Send code to frontend so the UI modal can display it with live status
+    if (event && event.sender) {
+      event.sender.send('github:oauth-device-code', {
+        userCode: user_code,
+        verificationUri: verification_uri || 'https://github.com/login/device',
+        expiresIn: expires_in
+      });
     }
-    return { success: false, error: 'Could not retrieve token from browser login.' };
+
+    // Automatically launch the default system browser
+    shell.openExternal(verification_uri || 'https://github.com/login/device');
+
+    // Poll GitHub for completion
+    const startTime = Date.now();
+    let pollIntervalMs = (interval || 5) * 1000;
+
+    while (Date.now() - startTime < expires_in * 1000) {
+      if (session.cancelled) {
+        return { success: false, error: 'Authorization cancelled by user.' };
+      }
+
+      await new Promise(r => setTimeout(r, pollIntervalMs));
+
+      if (session.cancelled) {
+        return { success: false, error: 'Authorization cancelled by user.' };
+      }
+
+      const pollBody = new URLSearchParams({
+        client_id: clientId,
+        device_code: device_code,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+      }).toString();
+
+      const pollRes = await new Promise((resolve) => {
+        const req = https.request({
+          hostname: 'github.com',
+          path: '/login/oauth/access_token',
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(pollBody),
+            'User-Agent': 'Security-Guard-Desktop/1.0'
+          }
+        }, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            try { resolve(JSON.parse(body)); } catch (e) { resolve({}); }
+          });
+        });
+        req.on('error', () => resolve({}));
+        req.write(pollBody);
+        req.end();
+      });
+
+      if (pollRes.access_token) {
+        const token = pollRes.access_token;
+        const profile = await fetchGitHubApi('/user', token);
+        const cfg = loadConfig();
+        const accounts = cfg.githubAccounts || [];
+        const entry = {
+          login: profile.login,
+          name: profile.name || profile.login,
+          avatar_url: profile.avatar_url,
+          public_repos: profile.public_repos,
+          total_private_repos: profile.total_private_repos || 0,
+          html_url: profile.html_url,
+          token: token,
+          addedAt: new Date().toISOString()
+        };
+
+        const existingIdx = accounts.findIndex(a => a.login === profile.login);
+        if (existingIdx >= 0) accounts[existingIdx] = entry;
+        else accounts.push(entry);
+
+        saveConfig({
+          githubAccounts: accounts,
+          githubToken: token,
+          activeGitHubLogin: profile.login,
+          disconnected: false
+        });
+
+        currentOAuthSession = null;
+        return { success: true, user: entry, token };
+      }
+
+      if (pollRes.error === 'authorization_pending') {
+        continue;
+      }
+
+      if (pollRes.error === 'slow_down') {
+        pollIntervalMs += 5000;
+        continue;
+      }
+
+      if (pollRes.error === 'expired_token') {
+        return { success: false, error: 'Verification code expired. Please click Add Account again.' };
+      }
+
+      if (pollRes.error && pollRes.error !== 'authorization_pending') {
+        return { success: false, error: pollRes.error_description || pollRes.error };
+      }
+    }
+
+    return { success: false, error: 'Timed out waiting for browser authorization.' };
   } catch (err) {
     return { success: false, error: err.message };
+  } finally {
+    if (currentOAuthSession === session) currentOAuthSession = null;
   }
 });
 

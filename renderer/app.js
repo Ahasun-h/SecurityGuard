@@ -1626,26 +1626,78 @@ document.getElementById('globalSearchInput').addEventListener('input', (e) => {
     });
   }
 
+  // Universal Browser OAuth Authorization Flow
+  let activeVerificationUri = 'https://github.com/login/device';
+
+  async function startBrowserOAuthFlow() {
+    const modal = document.getElementById('modalOAuthDevice');
+    const codeEl = document.getElementById('oauthDeviceUserCode');
+    const statusEl = document.getElementById('oauthStatusText');
+    const badgeEl = document.getElementById('oauthCopyBadge');
+
+    if (modal) modal.style.display = 'flex';
+    if (codeEl) codeEl.textContent = '••••-••••';
+    if (statusEl) statusEl.textContent = 'Contacting GitHub and opening browser...';
+    if (badgeEl) badgeEl.style.display = 'none';
+
+    try {
+      const res = await window.guardAPI.loginGitHubBrowser();
+      if (res && res.success) {
+        if (statusEl) statusEl.textContent = `✓ Successfully authenticated @${res.user.login || 'GitHub'}!`;
+        await checkGitHubAuth();
+        await loadSavedAccountsInSettings();
+        await renderAccountsView();
+        setTimeout(() => {
+          if (modal) modal.style.display = 'none';
+        }, 1200);
+      } else if (res && res.error) {
+        if (statusEl) statusEl.textContent = 'Authorization status: ' + res.error;
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  // Device Code event from backend
+  if (window.guardAPI && window.guardAPI.onOAuthDeviceCode) {
+    window.guardAPI.onOAuthDeviceCode((data) => {
+      const codeEl = document.getElementById('oauthDeviceUserCode');
+      const statusEl = document.getElementById('oauthStatusText');
+      const badgeEl = document.getElementById('oauthCopyBadge');
+      if (data && data.userCode) {
+        if (codeEl) codeEl.textContent = data.userCode;
+        if (badgeEl) badgeEl.style.display = 'block';
+        if (statusEl) statusEl.textContent = 'Enter the code in your browser and click Authorize...';
+        activeVerificationUri = data.verificationUri || 'https://github.com/login/device';
+      }
+    });
+  }
+
+  // Cancel OAuth button
+  const btnCancelOAuth = document.getElementById('btnCancelOAuthDevice');
+  if (btnCancelOAuth) {
+    btnCancelOAuth.addEventListener('click', async () => {
+      const modal = document.getElementById('modalOAuthDevice');
+      if (modal) modal.style.display = 'none';
+      if (window.guardAPI && window.guardAPI.cancelOAuthLogin) {
+        await window.guardAPI.cancelOAuthLogin();
+      }
+    });
+  }
+
+  // Re-open browser button
+  const btnOpenBrowserAgain = document.getElementById('oauthOpenBrowserBtn');
+  if (btnOpenBrowserAgain) {
+    btnOpenBrowserAgain.addEventListener('click', () => {
+      window.open(activeVerificationUri, '_blank');
+    });
+  }
+
   // Account Tab: Browser OAuth button
   const btnAcctTabOAuth = document.getElementById('btnAccountTabOAuthBrowser');
   if (btnAcctTabOAuth) {
-    btnAcctTabOAuth.addEventListener('click', async () => {
-      const fb = document.getElementById('addAccountFeedback');
-      if (fb) fb.textContent = 'Authenticating in browser...';
-      try {
-        const res = await window.guardAPI.loginGitHubBrowser();
-        if (res.success) {
-          if (fb) fb.textContent = '✓ Successfully connected @' + (res.user.login || 'GitHub');
-          await checkGitHubAuth();
-          await loadSavedAccountsInSettings();
-          await renderAccountsView();
-          switchView('view-dashboard');
-        } else {
-          if (fb) fb.textContent = 'OAuth Error: ' + res.error;
-        }
-      } catch (err) {
-        if (fb) fb.textContent = 'OAuth Failed: ' + err.message;
-      }
+    btnAcctTabOAuth.addEventListener('click', () => {
+      startBrowserOAuthFlow();
     });
   }
 
@@ -1858,12 +1910,11 @@ const btnResyncCli = document.getElementById('btnResyncGhCli');
     });
   }
 
-  // Account Tab: Open Add Account box
+  // Account Tab: Open Add Account & start Browser OAuth
   const btnOpenAdd = document.getElementById('btnOpenAddAccountModal');
   if (btnOpenAdd) {
     btnOpenAdd.addEventListener('click', () => {
-      const box = document.getElementById('addAccountBox');
-      if (box) box.scrollIntoView({ behavior: 'smooth' });
+      startBrowserOAuthFlow();
     });
   }
 
