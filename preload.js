@@ -1,16 +1,28 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('guardAPI', {
-  // Guard Binary
+  // Guard Binary & Continuous Background Shield
   checkGuardStatus: () => ipcRenderer.invoke('guard:check-status'),
   installGuard: () => ipcRenderer.invoke('guard:install'),
+  getDaemonStatus: () => ipcRenderer.invoke('guard:get-daemon-status'),
+  runHostTriage: () => ipcRenderer.invoke('guard:run-triage'),
+  toggleDaemon: (action) => ipcRenderer.invoke('guard:toggle-daemon', action),
+  bootstrapGuard: () => ipcRenderer.invoke('guard:bootstrap'),
 
   // GitHub Auth & Repos
   getGitHubAuthStatus: () => ipcRenderer.invoke('github:get-auth-status'),
   saveGitHubToken: (token) => ipcRenderer.invoke('github:save-token', token),
   fetchGitHubRepos: () => ipcRenderer.invoke('github:fetch-repos'),
+  getCachedRepos: (login) => ipcRenderer.invoke('github:get-cached-repos', login),
+  syncGitHubRepos: (options) => ipcRenderer.invoke('github:sync-repos', options),
+  onReposSyncProgress: (callback) => {
+    ipcRenderer.removeAllListeners('github:repos-sync-progress');
+    ipcRenderer.on('github:repos-sync-progress', (_event, value) => callback(value));
+  },
   fetchGitHubReposPage: (page, perPage) => ipcRenderer.invoke('github:fetch-repos-page', page, perPage),
+  loginGitHubBrowser: () => ipcRenderer.invoke('github:login-browser'),
   disconnectGitHub: () => ipcRenderer.invoke('github:disconnect'),
+  reconnectGitHubCli: () => ipcRenderer.invoke('github:reconnect-cli'),
   getGitHubAccounts: () => ipcRenderer.invoke('github:get-accounts'),
   switchGitHubAccount: (token) => ipcRenderer.invoke('github:switch-account', token),
   addGitHubAccount: (token) => ipcRenderer.invoke('github:add-account', token),
@@ -33,6 +45,18 @@ contextBridge.exposeInMainWorld('guardAPI', {
   // Local System Targets
   getLocalTargets: () => ipcRenderer.invoke('system:get-local-targets'),
   selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
+  verifyAppSignature: (appName) => ipcRenderer.invoke('system:verify-app-signature', appName),
+  verifyVsCodeCodesign: () => ipcRenderer.invoke('system:verify-vscode-codesign'),
+  getLatestBackgroundScan: () => ipcRenderer.invoke('system:get-latest-background-scan'),
+  runBackgroundPcScan: () => ipcRenderer.invoke('system:run-background-pc-scan'),
+  onNavigateToTab: (callback) => {
+    ipcRenderer.removeAllListeners('navigate-to-tab');
+    ipcRenderer.on('navigate-to-tab', (_event, tab) => callback(tab));
+  },
+  onBackgroundPcScanFinished: (callback) => {
+    ipcRenderer.removeAllListeners('system:background-pc-scan-finished');
+    ipcRenderer.on('system:background-pc-scan-finished', (_event, report) => callback(report));
+  },
 
   // Scanner Orchestration
   startScan: (options) => ipcRenderer.invoke('scanner:start-scan', options),

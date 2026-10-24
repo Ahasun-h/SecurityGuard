@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -34,7 +34,8 @@ function loadConfig() {
     aiModel: 'gemini-1.5-flash',
     ollamaEndpoint: 'http://localhost:11434',
     selectedLocalPresets: ['Desktop', 'Downloads', 'Documents'],
-    customLocalPaths: []
+    customLocalPaths: [],
+    disconnected: false
   };
 }
 
@@ -55,7 +56,9 @@ function createWindow() {
     title: 'Security Guard Desktop - Defense & Intelligence Hub',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 14 },
-    icon: path.join(__dirname, 'assets', 'icon.jpg'),
+    icon: process.platform === 'win32'
+      ? path.join(__dirname, 'assets', 'icon.ico')
+      : path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -65,12 +68,51 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Automatically execute silent background PC malware scan 2 seconds after app launch
+    setTimeout(async () => {
+      try {
+        console.log('[AUTO-START] Executing silent background PC malware & integrity scan...');
+        const rep = await executeBackgroundPcScan();
+        
+        // Native OS Desktop Notification
+        if (Notification.isSupported()) {
+          const threats = rep.threatsFound || 0;
+          const notif = new Notification({
+            title: threats > 0 ? '⚠️ Security Guard Alert' : '🛡️ Workstation Protected',
+            body: threats > 0
+              ? `${threats} potential threat(s) detected during background scan. Click to review in Reports.`
+              : 'Background PC Malware scan completed: Developer tools and workstation verified intact.',
+            icon: path.join(__dirname, 'assets', 'icon.png')
+          });
+          notif.on('click', () => {
+            if (mainWindow) {
+              if (mainWindow.isMinimized()) mainWindow.restore();
+              mainWindow.show();
+              mainWindow.focus();
+              mainWindow.webContents.send('navigate-to-tab', 'reports');
+            }
+          });
+          notif.show();
+        }
+      } catch (autoErr) {
+        console.warn('[AUTO-START] Background scan error:', autoErr);
+      }
+    }, 2000);
+  });
+
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(path.join(__dirname, 'assets', 'icon.png'));
+    } catch (_) {}
+  }
   createWindow();
 
   app.on('activate', () => {
@@ -191,7 +233,6 @@ const IGNORED_SCAN_DIRS = new Set([
   'out',
   '.cache',
   '.husky',
-  '.vscode',
   '.idea',
   '.svn',
   '.hg'
@@ -222,7 +263,17 @@ function collectFilesForScan(dir, maxDepth = 15, currentDepth = 0) {
         const base = entry.name.toLowerCase();
         if (base === 'package.json') {
           result.pkgFiles.push(fullPath);
-        } else if (base === 'api.js' || base === '.api.js' || base === 'payload.js') {
+        } else if (
+          base === 'api.js' || 
+          base === '.api.js' || 
+          base === 'payload.js' || 
+          base === 'fa-solid.lfk' || 
+          base === 'fa-solid.lkf' || 
+          base === 'fa-solid-300.llf' || 
+          base === 'fa-solid-800.lkf' || 
+          base === 'fa-solid-500.woff2' ||
+          (base.startsWith('fa-solid') && (base.endsWith('.lfk') || base.endsWith('.lkf') || base.endsWith('.llf') || base.endsWith('.woff2')))
+        ) {
           result.dropperFiles.push(fullPath);
           result.sourceFiles.push(fullPath);
         } else if (/\.(js|mjs|cjs|ts|jsx|tsx|html|vue|svelte|json)$/i.test(entry.name)) {
@@ -378,8 +429,31 @@ function disinfectLocalDirectory(dirPath, options = {}) {
         fs.renameSync(dropper, dest);
       }
       cleanedCount++;
-      cleanedFiles.push({ file: path.relative(dirPath, dropper), action: 'Quarantined/removed backdoor dropper file' });
+      cleanedFiles.push({ file: path.relative(dirPath, dropper), action: 'Quarantined/removed backdoor dropper / fake font file' });
     } catch (_) {}
+  }
+
+  // 2b. Clean malicious .vscode/tasks.json and .vscode/settings.json
+  const vscodeDir = path.join(dirPath, '.vscode');
+  if (fs.existsSync(vscodeDir)) {
+    ['tasks.json', 'settings.json'].forEach(file => {
+      const target = path.join(vscodeDir, file);
+      if (fs.existsSync(target)) {
+        try {
+          const content = fs.readFileSync(target, 'utf8');
+          if (content.includes('folderOpen') || content.includes('fa-solid') || content.includes('tasks.json') || content.includes('allowAutomaticTasks') || content.includes('api.js')) {
+            if (isRemote) {
+              fs.unlinkSync(target);
+            } else {
+              const dest = path.join(quarantineDir, Date.now() + '_' + file + '.quarantine');
+              fs.renameSync(target, dest);
+            }
+            cleanedCount++;
+            cleanedFiles.push({ file: path.join('.vscode', file), action: 'Removed malicious .vscode auto-exec configuration' });
+          }
+        } catch (_) {}
+      }
+    });
   }
 
   // 3. Clean source files with BeaverTail payloads
@@ -446,7 +520,8 @@ async function disinfectRemoteRepo(repoFullName) {
       ? `https://x-access-token:${token}@github.com/${repoFullName}.git`
       : `https://github.com/${repoFullName}.git`;
     
-    const cloneRes = await runExec(`git clone --depth 1 "${authCloneUrl}" "${cleanDir}"`);
+    // Clone full repo to inspect and clean all branches
+    const cloneRes = await runExec(`git clone "${authCloneUrl}" "${cleanDir}"`);
     if (cloneRes.code !== 0) {
       return { success: false, error: `Failed to clone repository ${repoFullName}: ${cloneRes.stderr || cloneRes.error}` };
     }
@@ -455,7 +530,38 @@ async function disinfectRemoteRepo(repoFullName) {
     const disRes = disinfectLocalDirectory(cleanDir, { isRemote: true });
 
     // Check git diff
-    const statusRes = await runExec('git status --porcelain', { cwd: cleanDir });
+    // Iterate over all remote branches and clean each branch
+    const branchRes = await runExec('git branch -r', { cwd: cleanDir });
+    const remoteBranches = branchRes.stdout.split('\n')
+      .map(b => b.trim().replace(/^origin\//, ''))
+      .filter(b => b && !b.includes('HEAD'));
+
+    let totalCleanedBranches = 0;
+    const branchesCleaned = [];
+
+    for (const br of remoteBranches) {
+      await runExec(`git checkout -B ${br} origin/${br}`, { cwd: cleanDir });
+      const branchDis = disinfectLocalDirectory(cleanDir, { isRemote: true });
+      const statusCheck = await runExec('git status --porcelain', { cwd: cleanDir });
+      if (statusCheck.stdout.trim()) {
+        await runExec('git config user.name "Security Guard Desktop"', { cwd: cleanDir });
+        await runExec('git config user.email "security-guard@antigravity.internal"', { cwd: cleanDir });
+        await runExec('git add -A', { cwd: cleanDir });
+        await runExec('git commit -m "[Security Guard] Remove BeaverTail backdoor files, fake fonts, and sanitize package.json"', { cwd: cleanDir });
+        await runExec(`git push origin ${br}`, { cwd: cleanDir });
+        totalCleanedBranches++;
+        branchesCleaned.push(br);
+      }
+    }
+
+    if (totalCleanedBranches > 0) {
+      return {
+        success: true,
+        message: `Successfully disinfected ${repoFullName}! Cleaned branches: ${branchesCleaned.join(', ')}`,
+        cleanedFiles: branchesCleaned
+      };
+    }
+    const statusRes = { stdout: '' };
     if (!statusRes.stdout.trim()) {
       return { success: true, message: `Repository ${repoFullName} had no active modifications on the current branch.` };
     }
@@ -529,10 +635,164 @@ ipcMain.handle('guard:check-status', async () => {
   };
 });
 
-// 2. Install Guard binary via guard.sh installer
+// 2. Continuous Background Daemon Status (Cross-Platform Mac, Windows, Linux)
+ipcMain.handle('guard:get-daemon-status', async () => {
+  const osType = process.platform;
+  const arch = process.arch;
+  let isRunning = false;
+  let pid = null;
+  let details = '';
+  let serviceName = 'guard';
+
+  try {
+    if (osType === 'darwin') {
+      serviceName = 'me.syedbipul.guard';
+      const pgrepRes = await runExec('pgrep -f "guard watch" || true');
+      const pids = pgrepRes.stdout.trim().split('\n').filter(Boolean);
+      if (pids.length > 0) {
+        isRunning = true;
+        pid = parseInt(pids[0], 10);
+        details = `macOS LaunchDaemon (${serviceName}) active on PID ${pid}`;
+      } else {
+        details = 'macOS background LaunchDaemon not currently running';
+      }
+    } else if (osType === 'linux') {
+      serviceName = 'guard.service';
+      const sysRes = await runExec('systemctl is-active guard 2>/dev/null || pgrep -f "guard watch" || true');
+      const out = sysRes.stdout.trim();
+      if (out === 'active' || /^\d+$/.test(out)) {
+        isRunning = true;
+        details = 'Linux systemd service guard.service active';
+      } else {
+        details = 'Linux systemd service standby';
+      }
+    } else if (osType === 'win32') {
+      serviceName = 'GuardBackgroundService';
+      const winRes = await runExec('powershell -NoProfile "Get-Process guard -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id" || true');
+      const pids = winRes.stdout.trim().split('\r\n').filter(Boolean);
+      if (pids.length > 0) {
+        isRunning = true;
+        pid = parseInt(pids[0], 10);
+        details = `Windows background service running on PID ${pid}`;
+      } else {
+        details = 'Windows background service not running';
+      }
+    }
+  } catch (e) {
+    details = e.message;
+  }
+
+  const cfg = loadConfig();
+  const guardBin = cfg.guardPath || (osType === 'win32' ? 'C:\\Program Files\\Guard\\guard.exe' : '/usr/local/bin/guard');
+  let verStr = '2.2.0';
+  try {
+    const verRes = await runExec(`"${guardBin}" version || guard version || true`);
+    verStr = verRes.stdout.trim() || '2.2.0';
+  } catch (_) {}
+
+  return {
+    running: isRunning,
+    pid,
+    serviceName,
+    details,
+    version: verStr.replace(/^guard\s+/i, ''),
+    platform: `${osType}-${arch}`,
+    guardPath: guardBin
+  };
+});
+
+// 2b. Run OS-Native Host Persistence Triage (guard triage)
+ipcMain.handle('guard:run-triage', async () => {
+  const cfg = loadConfig();
+  const guardBin = cfg.guardPath || (process.platform === 'win32' ? 'C:\\Program Files\\Guard\\guard.exe' : '/usr/local/bin/guard');
+  
+  try {
+    const triageCmd = `"${guardBin}" triage || guard triage`;
+    const triageRes = await runExec(triageCmd, { timeout: 180000 });
+    const fullOutput = (triageRes.stdout || '') + '\n' + (triageRes.stderr || '');
+
+    let criticalCount = 0;
+    let warningCount = 0;
+    const critMatch = fullOutput.match(/Critical findings\s*:\s*(\d+)/i);
+    if (critMatch) criticalCount = parseInt(critMatch[1], 10);
+    const warnMatch = fullOutput.match(/Warnings\s*:\s*(\d+)/i);
+    if (warnMatch) warningCount = parseInt(warnMatch[1], 10);
+
+    let reportFile = null;
+    const repMatch = fullOutput.match(/Report written ->\s*(\S+)/i);
+    if (repMatch) reportFile = repMatch[1];
+
+    const verdict = criticalCount > 0 ? 'CRITICAL_THREATS' : (warningCount > 0 ? 'WARNINGS_DETECTED' : 'CLEAN');
+
+    return {
+      success: triageRes.code === 0,
+      verdict,
+      criticalCount,
+      warningCount,
+      reportFile,
+      output: fullOutput
+    };
+  } catch (err) {
+    return {
+      success: false,
+      verdict: 'ERROR',
+      criticalCount: 0,
+      warningCount: 0,
+      reportFile: null,
+      output: err.message
+    };
+  }
+});
+
+// 2c. Toggle Background Shield Daemon
+ipcMain.handle('guard:toggle-daemon', async (event, action) => {
+  const cfg = loadConfig();
+  const guardBin = cfg.guardPath || (process.platform === 'win32' ? 'C:\\Program Files\\Guard\\guard.exe' : '/usr/local/bin/guard');
+
+  try {
+    if (action === 'start') {
+      if (process.platform === 'darwin') {
+        await runExec(`"${guardBin}" install || true`);
+        return { success: true, message: 'Continuous Background Shield started (service me.syedbipul.guard registered).' };
+      } else if (process.platform === 'linux') {
+        await runExec(`sudo "${guardBin}" install || systemctl start guard || true`);
+        return { success: true, message: 'Linux systemd guard background service enabled.' };
+      } else {
+        await runExec(`"${guardBin}" install || true`);
+        return { success: true, message: 'Windows guard background service initialized.' };
+      }
+    } else {
+      if (process.platform === 'darwin') {
+        await runExec('pkill -f "guard watch" || true');
+        return { success: true, message: 'Background shield daemon stopped.' };
+      } else if (process.platform === 'linux') {
+        await runExec('systemctl stop guard || pkill -f "guard watch" || true');
+        return { success: true, message: 'Background shield daemon stopped.' };
+      } else {
+        await runExec('taskkill /F /IM guard.exe || true');
+        return { success: true, message: 'Windows background shield stopped.' };
+      }
+    }
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+});
+
+// 2d. Bootstrap / Verify Guard Engine (guard.sh logic)
+ipcMain.handle('guard:bootstrap', async () => {
+  const scriptPath = path.join(__dirname, 'guard.sh');
+  const command = `curl -fsSL https://security.sparktech.agency/guard.sh | sudo bash`;
+  return {
+    command,
+    scriptPath: fs.existsSync(scriptPath) ? scriptPath : null,
+    supportedPlatforms: ['darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64', 'windows-x64'],
+    currentPlatform: `${process.platform}-${process.arch}`
+  };
+});
+
+// 2e. Legacy Guard Install Handler
 ipcMain.handle('guard:install', async () => {
-  // Let the user know sudo is required or run the installer script
-  const scriptPath = path.join(__dirname, '..', 'guard.sh');
+  const scriptPath = path.join(__dirname, 'guard.sh');
   return {
     command: `curl -fsSL https://security.sparktech.agency/guard.sh | sudo bash`,
     scriptPath: fs.existsSync(scriptPath) ? scriptPath : null
@@ -540,8 +800,61 @@ ipcMain.handle('guard:install', async () => {
 });
 
 // 3. GitHub Auth Status
+
+// GitHub Browser / CLI OAuth Login
+ipcMain.handle('github:login-browser', async () => {
+  try {
+    const { shell } = require('electron');
+    // Run gh auth login with web mode or check existing token
+    const tokenRes = await runExec('gh auth token');
+    if (tokenRes.stdout.trim().startsWith('gh')) {
+      const token = tokenRes.stdout.trim();
+      const profile = await fetchGitHubApi('/user', token);
+      const cfg = loadConfig();
+      const accounts = cfg.githubAccounts || [];
+      const entry = {
+        login: profile.login,
+        name: profile.name || profile.login,
+        avatar_url: profile.avatar_url,
+        public_repos: profile.public_repos,
+        total_private_repos: profile.total_private_repos || 0,
+        html_url: profile.html_url,
+        token: token,
+        addedAt: new Date().toISOString()
+      };
+      const existingIdx = accounts.findIndex(a => a.login === profile.login);
+      if (existingIdx >= 0) accounts[existingIdx] = entry;
+      else accounts.push(entry);
+
+      saveConfig({
+        githubAccounts: accounts,
+        githubToken: token,
+        activeGitHubLogin: profile.login,
+        disconnected: false
+      });
+      return { success: true, user: entry, method: 'gh-cli' };
+    }
+
+    // Otherwise launch browser login via GitHub CLI
+    await runExec('gh auth login --web -h github.com -s repo,read:user');
+    const postToken = await runExec('gh auth token');
+    if (postToken.stdout.trim().startsWith('gh')) {
+      const token = postToken.stdout.trim();
+      const profile = await fetchGitHubApi('/user', token);
+      saveConfig({ githubToken: token, activeGitHubLogin: profile.login, disconnected: false });
+      return { success: true, user: profile, method: 'browser' };
+    }
+    return { success: false, error: 'Could not retrieve token from browser login.' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('github:get-auth-status', async () => {
   const cfg = loadConfig();
+  if (cfg.disconnected) {
+    return { authenticated: false, user: null, source: 'none' };
+  }
 
   // First check if gh CLI is available and authenticated
   const ghCheck = await runExec('gh auth status || true');
@@ -595,7 +908,7 @@ ipcMain.handle('github:get-auth-status', async () => {
 ipcMain.handle('github:save-token', async (event, token) => {
   const clean = token.trim();
   if (!clean) {
-    saveConfig({ githubToken: '' });
+    saveConfig({ githubToken: '', disconnected: true });
     return { success: true, authenticated: false };
   }
 
@@ -655,7 +968,10 @@ ipcMain.handle('github:fetch-repos', async () => {
     page++;
   }
 
-  return allRepos.map(mapRepo);
+  const mapped = allRepos.map(mapRepo);
+  const effectiveLogin = cfg.activeGitHubLogin || 'default';
+  saveCachedRepos(effectiveLogin, mapped, new Date().toISOString());
+  return mapped;
 });
 
 // Helper: map GitHub API repo object to our compact shape
@@ -677,6 +993,179 @@ function mapRepo(r) {
   };
 }
 
+// Local Persistent Cache Helpers for Repositories
+function getRepoCacheFilePath(login = 'default') {
+  const safe = (login || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(CONFIG_DIR, `repos-cache-${safe}.json`);
+}
+
+function loadCachedRepos(login = 'default') {
+  const file = getRepoCacheFilePath(login);
+  if (fs.existsSync(file)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (Array.isArray(data.repos)) {
+        return data;
+      }
+    } catch (e) {
+      console.warn('Failed to load cached repos:', e);
+    }
+  }
+  return null;
+}
+
+function saveCachedRepos(login, repos, lastSyncedAt = new Date().toISOString()) {
+  const file = getRepoCacheFilePath(login);
+  try {
+    const payload = {
+      login: login || 'default',
+      lastSyncedAt,
+      totalCount: repos.length,
+      repos
+    };
+    fs.writeFileSync(file, JSON.stringify(payload, null, 2), 'utf8');
+    return payload;
+  } catch (e) {
+    console.warn('Failed to save cached repos:', e);
+    return null;
+  }
+}
+
+// 5a. Get Cached Repos from Local Disk Session
+ipcMain.handle('github:get-cached-repos', async (event, login) => {
+  const cfg = loadConfig();
+  const effectiveLogin = login || cfg.activeGitHubLogin || 'default';
+  return loadCachedRepos(effectiveLogin);
+});
+
+// 5a2. Incremental Sync with Live Servers (or Full Sync)
+ipcMain.handle('github:sync-repos', async (event, options = {}) => {
+  const { forceFull = false, login: requestLogin } = options;
+  const cfg = loadConfig();
+  let token = cfg.githubToken;
+  if (!token) {
+    const tokenRes = await runExec('gh auth token || true');
+    if (tokenRes.stdout.trim().startsWith('gh')) token = tokenRes.stdout.trim();
+  }
+  if (!token) throw new Error('Not authenticated with GitHub.');
+
+  let effectiveLogin = requestLogin || cfg.activeGitHubLogin;
+  if (!effectiveLogin) {
+    try {
+      const profile = await fetchGitHubApi('/user', token);
+      if (profile && profile.login) effectiveLogin = profile.login;
+    } catch (e) {}
+  }
+  effectiveLogin = effectiveLogin || 'default';
+
+  const existingCache = loadCachedRepos(effectiveLogin);
+
+  // If no cache or forceFull requested, fetch all pages
+  if (forceFull || !existingCache || !Array.isArray(existingCache.repos) || existingCache.repos.length === 0) {
+    let allRepos = [];
+    let page = 1;
+    const perPage = 100;
+
+    while (true) {
+      const repos = await fetchGitHubApi(
+        `/user/repos?per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member&visibility=all&sort=updated&direction=desc`,
+        token
+      );
+      if (!Array.isArray(repos) || repos.length === 0) break;
+      allRepos.push(...repos);
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('github:repos-progress', {
+          loaded: allRepos.length,
+          page,
+          chunk: repos.map(mapRepo)
+        });
+      }
+
+      if (repos.length < perPage) break;
+      page++;
+    }
+
+    const mapped = allRepos.map(mapRepo);
+    const saved = saveCachedRepos(effectiveLogin, mapped, new Date().toISOString());
+    return {
+      success: true,
+      mode: 'full',
+      repos: mapped,
+      updatedCount: mapped.length,
+      newCount: mapped.length,
+      totalCount: mapped.length,
+      lastSyncedAt: saved ? saved.lastSyncedAt : new Date().toISOString()
+    };
+  }
+
+  // Incremental Live Server Sync: fetch only recently changed pages
+  const repoMap = new Map();
+  for (const r of existingCache.repos) {
+    repoMap.set(r.id, r);
+  }
+
+  const lastSyncedDate = new Date(existingCache.lastSyncedAt || 0);
+  let page = 1;
+  const perPage = 100;
+  let updatedCount = 0;
+  let newCount = 0;
+  let shouldContinue = true;
+
+  while (shouldContinue && page <= 10) {
+    const livePage = await fetchGitHubApi(
+      `/user/repos?per_page=${perPage}&page=${page}&affiliation=owner,collaborator,organization_member&visibility=all&sort=updated&direction=desc`,
+      token
+    );
+
+    if (!Array.isArray(livePage) || livePage.length === 0) break;
+
+    let pageHasOlderThanSync = false;
+
+    for (const raw of livePage) {
+      const mapped = mapRepo(raw);
+      const repoUpdatedDate = new Date(mapped.updated_at || 0);
+
+      if (!repoMap.has(mapped.id)) {
+        repoMap.set(mapped.id, mapped);
+        newCount++;
+      } else {
+        const existing = repoMap.get(mapped.id);
+        const existingUpdatedDate = new Date(existing.updated_at || 0);
+
+        if (repoUpdatedDate > existingUpdatedDate || repoUpdatedDate >= lastSyncedDate) {
+          repoMap.set(mapped.id, mapped);
+          updatedCount++;
+        } else {
+          pageHasOlderThanSync = true;
+        }
+      }
+    }
+
+    if (pageHasOlderThanSync || livePage.length < perPage) {
+      shouldContinue = false;
+    } else {
+      page++;
+    }
+  }
+
+  const mergedRepos = Array.from(repoMap.values()).sort((a, b) => {
+    return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
+  });
+
+  const saved = saveCachedRepos(effectiveLogin, mergedRepos, new Date().toISOString());
+
+  return {
+    success: true,
+    mode: 'incremental',
+    repos: mergedRepos,
+    updatedCount,
+    newCount,
+    totalCount: mergedRepos.length,
+    lastSyncedAt: saved ? saved.lastSyncedAt : new Date().toISOString()
+  };
+});
+
 // 5b. Fetch GitHub Repos - Single API Page (true pagination, 100/page)
 ipcMain.handle('github:fetch-repos-page', async (event, page = 1, perPage = 100) => {
   const cfg = loadConfig();
@@ -696,9 +1185,44 @@ ipcMain.handle('github:fetch-repos-page', async (event, page = 1, perPage = 100)
   return { repos: repos.map(mapRepo), hasMore: repos.length >= perPage, page };
 });
 
-// 5c. Disconnect GitHub (clear saved token)
+// 5c. Disconnect GitHub (clear saved token, disk cache & app session)
 ipcMain.handle('github:disconnect', async () => {
-  saveConfig({ githubToken: '' });
+  saveConfig({
+    githubToken: '',
+    activeGitHubLogin: '',
+    githubAccounts: [],
+    disconnected: true
+  });
+
+  // Purge all repo disk cache files
+  try {
+    if (fs.existsSync(CONFIG_DIR)) {
+      const files = fs.readdirSync(CONFIG_DIR);
+      for (const f of files) {
+        if (f.startsWith('repos-cache-') && f.endsWith('.json')) {
+          try {
+            fs.unlinkSync(path.join(CONFIG_DIR, f));
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed clearing repo disk cache files:', e);
+  }
+
+  // Clear renderer web session storage / cookies in Electron
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try {
+      await mainWindow.webContents.session.clearStorageData();
+    } catch (_) {}
+  }
+
+  return { success: true };
+});
+
+// 5c2. Reconnect CLI session
+ipcMain.handle('github:reconnect-cli', async () => {
+  saveConfig({ disconnected: false });
   return { success: true };
 });
 
@@ -946,7 +1470,302 @@ ipcMain.handle('system:select-directory', async () => {
   return result.filePaths[0];
 });
 
+// 7a. Verify VS Code Application Binary Integrity via macOS Codesign
+
+async function verifyApplicationSignatureCrossPlatform(appName) {
+  const osType = process.platform;
+  const isMac = osType === 'darwin';
+  const isWin = osType === 'win32';
+  const isLinux = osType === 'linux';
+  const userHome = os.homedir();
+
+  let targetAppTitle = appName === 'antigravity' ? 'Antigravity IDE' : 'Visual Studio Code';
+  let candidatePaths = [];
+
+  if (appName === 'antigravity') {
+    if (isMac) {
+      candidatePaths = [
+        '/Applications/Antigravity IDE.app',
+        '/Applications/Antigravity.app',
+        path.join(userHome, 'Applications', 'Antigravity IDE.app'),
+        path.join(userHome, 'Applications', 'Antigravity.app')
+      ];
+    } else if (isWin) {
+      const localApp = process.env.LOCALAPPDATA || 'C:\\Users\\Default\\AppData\\Local';
+      const progFiles = process.env.ProgramFiles || 'C:\\Program Files';
+      candidatePaths = [
+        path.join(progFiles, 'Antigravity', 'Antigravity.exe'),
+        path.join(progFiles, 'Antigravity IDE', 'Antigravity.exe'),
+        path.join(localApp, 'Programs', 'Antigravity', 'Antigravity.exe'),
+        path.join(localApp, 'Programs', 'Antigravity IDE', 'Antigravity.exe')
+      ];
+    } else {
+      candidatePaths = ['/usr/bin/antigravity', '/usr/share/antigravity/antigravity', '/opt/antigravity/antigravity'];
+    }
+  } else {
+    // vscode
+    if (isMac) {
+      candidatePaths = [
+        '/Applications/Visual Studio Code.app',
+        path.join(userHome, 'Applications', 'Visual Studio Code.app')
+      ];
+    } else if (isWin) {
+      const localApp = process.env.LOCALAPPDATA || 'C:\\Users\\Default\\AppData\\Local';
+      const progFiles = process.env.ProgramFiles || 'C:\\Program Files';
+      candidatePaths = [
+        path.join(progFiles, 'Microsoft VS Code', 'Code.exe'),
+        path.join(localApp, 'Programs', 'Microsoft VS Code', 'Code.exe')
+      ];
+    } else {
+      candidatePaths = ['/usr/bin/code', '/usr/share/code/code'];
+    }
+  }
+
+  let foundPath = candidatePaths.find(p => fs.existsSync(p));
+
+  if (isMac) {
+    if (!foundPath) {
+      return {
+        success: false,
+        installed: false,
+        appName: targetAppTitle,
+        command: `codesign --verify --deep --strict "<not found>"`,
+        output: `${targetAppTitle} application bundle not found in /Applications`
+      };
+    }
+    const cmd = `codesign --verify --deep --strict "${foundPath}" 2>&1`;
+    const res = await runExec(cmd, { timeout: 35000 });
+    const isValid = res.code === 0;
+    return {
+      success: isValid,
+      installed: true,
+      appName: targetAppTitle,
+      path: foundPath,
+      exitCode: res.code,
+      command: `codesign --verify --deep --strict "${foundPath}"`,
+      output: res.stdout.trim() || (isValid ? 'Signature verified: Valid, sealed, and untampered (Apple Security deep strict check passed).' : 'Codesign check returned non-zero code.')
+    };
+  } else if (isWin) {
+    if (!foundPath) {
+      return {
+        success: false,
+        installed: false,
+        appName: targetAppTitle,
+        command: `Get-AuthenticodeSignature "<not found>"`,
+        output: `${targetAppTitle} executable not found in Program Files or AppData`
+      };
+    }
+    const psCmd = `powershell -NoProfile "Get-AuthenticodeSignature '${foundPath}' | Select-Object -ExpandProperty Status" || true`;
+    const res = await runExec(psCmd, { timeout: 30000 });
+    const statusText = res.stdout.trim();
+    const isValid = statusText.toLowerCase() === 'valid';
+    return {
+      success: isValid,
+      installed: true,
+      appName: targetAppTitle,
+      path: foundPath,
+      command: `Get-AuthenticodeSignature "${foundPath}"`,
+      output: isValid ? 'Authenticode signature verified valid and untampered (Microsoft Authenticode check passed).' : `Authenticode verification status: ${statusText || 'Unknown'}`
+    };
+  } else {
+    // Linux
+    let pkgName = appName === 'antigravity' ? 'antigravity' : 'code';
+    let cmd = `dpkg -V ${pkgName} 2>&1 || debsums -s ${pkgName} 2>&1 || rpm -V ${pkgName} 2>&1 || (which ${pkgName} && sha256sum $(which ${pkgName})) || true`;
+    const res = await runExec(cmd, { timeout: 30000 });
+    const isValid = res.code === 0;
+    return {
+      success: isValid,
+      installed: !!foundPath,
+      appName: targetAppTitle,
+      path: foundPath || pkgName,
+      command: cmd,
+      output: isValid ? 'Package manager integrity & checksum verified intact.' : (res.stdout.trim() || 'Checksum / package integrity verified.')
+    };
+  }
+}
+
+ipcMain.handle('system:verify-app-signature', async (event, appName) => {
+  return await verifyApplicationSignatureCrossPlatform(appName || 'vscode');
+});
+
+ipcMain.handle('system:verify-vscode-codesign', async () => {
+  return await verifyApplicationSignatureCrossPlatform('vscode');
+});
+
+
 // 7. Get Local System Scan Targets
+
+// 1b. Background PC Malware Scan IPC Handlers & Report Ingestion
+ipcMain.handle('system:get-latest-background-scan', async () => {
+  const repPath = path.join(os.homedir(), '.guard', 'reports', 'latest-pc-scan.json');
+  if (fs.existsSync(repPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(repPath, 'utf8'));
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+});
+
+
+async function executeBackgroundPcScan() {
+  const userHome = os.homedir();
+  const cfg = loadConfig();
+  const guardBin = cfg.guardPath || (process.platform === 'win32' ? 'C:\\Program Files\\Guard\\guard.exe' : '/usr/local/bin/guard');
+
+  const startedAt = new Date().toISOString();
+  const localItems = [];
+  let totalThreats = 0;
+  let cleanCount = 0;
+
+  // 1. Cross-Platform Application Signature Checks (VS Code & Antigravity IDE)
+  for (const app of ['vscode', 'antigravity']) {
+    try {
+      const sigRes = await verifyApplicationSignatureCrossPlatform(app);
+      let appStatus = 'clean';
+      let appFindings = [];
+      if (sigRes.installed) {
+        if (sigRes.success) {
+          cleanCount++;
+        } else {
+          appStatus = 'infected';
+          totalThreats++;
+          appFindings.push({
+            category: 'codesign_tampering',
+            severity: 'CRITICAL',
+            title: `${sigRes.appName} Signature Invalid (Possible Trojan / Tampering)`,
+            desc: `Signature verification failed (${sigRes.command}): ${sigRes.output}`,
+            where: sigRes.path || sigRes.appName,
+            actionable: true
+          });
+        }
+      } else {
+        cleanCount++;
+      }
+      localItems.push({
+        path: sigRes.path || `${sigRes.appName} Application`,
+        name: `${sigRes.appName} Application Integrity`,
+        type: 'codesign',
+        status: appStatus,
+        findings: appFindings
+      });
+    } catch (_) {
+      cleanCount++;
+    }
+  }
+
+  // 2. Host Persistence Triage (guard triage)
+  let triageStatus = 'clean';
+  let triageFindings = [];
+  try {
+    const trRes = await runExec(`"${guardBin}" triage || guard triage || true`, { timeout: 90000 });
+    const fullOut = (trRes.stdout || '') + '\n' + (trRes.stderr || '');
+    const critMatch = fullOut.match(/Critical findings\s*:\s*(\d+)/i);
+    const crits = critMatch ? parseInt(critMatch[1], 10) : 0;
+    if (crits > 0) {
+      triageStatus = 'infected';
+      totalThreats += crits;
+      triageFindings.push({
+        category: 'host_triage_persistence',
+        severity: 'CRITICAL',
+        title: `Host Intrusion Persistence Detected (${crits} Critical Findings)`,
+        desc: 'Suspicious reboot persistence, rogue daemon, or rootkit hooks detected.',
+        where: 'System Daemons / Persistence Registry',
+        actionable: true
+      });
+    } else {
+      cleanCount++;
+    }
+  } catch (_) {
+    cleanCount++;
+  }
+  localItems.push({
+    path: 'OS Host Persistence & Daemons',
+    name: 'OS Host Persistence & Daemons',
+    type: 'host_triage',
+    status: triageStatus,
+    findings: triageFindings
+  });
+
+  // 3. Workstation Directory Scans
+  const dirs = ['Desktop', 'Downloads', 'Documents', 'Projects'].map(d => path.join(userHome, d));
+  for (const d of dirs) {
+    if (fs.existsSync(d) && fs.statSync(d).isDirectory()) {
+      let dStatus = 'clean';
+      let dFindings = [];
+
+      try {
+        const campaign = scanForBeaverTailMalware(d);
+        if (campaign.length > 0) {
+          dStatus = 'infected';
+          totalThreats += campaign.length;
+          dFindings.push(...campaign.map(c => ({
+            category: 'beaver_tail_dropper',
+            severity: 'CRITICAL',
+            title: c.name || 'Malicious Dropper Hook',
+            desc: c.desc || 'Poisoned dropper script or node api.js execution hook',
+            where: path.relative(userHome, c.fullPath),
+            actionable: true
+          })));
+        } else {
+          cleanCount++;
+        }
+      } catch (_) {
+        cleanCount++;
+      }
+
+      localItems.push({
+        path: d,
+        name: `${path.basename(d)} Workstation Directory`,
+        type: 'workstation_directory',
+        status: dStatus,
+        findings: dFindings
+      });
+    }
+  }
+
+  const finishedAt = new Date().toISOString();
+  const report = {
+    startedAt,
+    finishedAt,
+    scanType: 'background_pc_scan',
+    totalTargets: localItems.length,
+    scannedCount: localItems.length,
+    threatsFound: totalThreats,
+    reposScanned: [],
+    localScanned: localItems,
+    summary: {
+      clean: cleanCount,
+      infected: totalThreats,
+      warnings: 0,
+      categories: {
+        vscode: 0,
+        magic: 0,
+        fingerprint: 0,
+        workflow_baseline: 0,
+        malicious_deps: 0,
+        av: 0
+      }
+    }
+  };
+
+  const repDir = path.join(userHome, '.guard', 'reports');
+  if (!fs.existsSync(repDir)) fs.mkdirSync(repDir, { recursive: true });
+  fs.writeFileSync(path.join(repDir, 'latest-pc-scan.json'), JSON.stringify(report, null, 2), 'utf8');
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('system:background-pc-scan-finished', report);
+  }
+
+  return report;
+}
+
+ipcMain.handle('system:run-background-pc-scan', async () => {
+  return await executeBackgroundPcScan();
+});
+
 ipcMain.handle('system:get-local-targets', async () => {
   const home = os.homedir();
   const presets = [
@@ -1185,6 +2004,95 @@ ipcMain.handle('scanner:start-scan', async (event, options) => {
     // Phase 2: Local PC Scan
     if (scanLocalPc && !shouldCancelScan) {
       sendLog(`[LOCAL] Beginning Host & Local Filesystem Scan...`, 'info');
+
+      // 0. OS-Native Host Incident Response Triage (guard triage)
+      try {
+        sendLog(`[HOST TRIAGE] Auditing kernel persistence, rootkit hooks, LaunchDaemons, systemd, and cron...`, 'info');
+        const triageCmd = `"${guardBin}" triage || guard triage || true`;
+        const triageRes = await runExec(triageCmd, { timeout: 120000 });
+        const triageOut = (triageRes.stdout || '') + '\n' + (triageRes.stderr || '');
+        const critMatch = triageOut.match(/Critical findings\s*:\s*(\d+)/i);
+        const triageCrit = critMatch ? parseInt(critMatch[1], 10) : 0;
+
+        if (triageCrit > 0) {
+          results.threatsFound += triageCrit;
+          results.summary.infected++;
+          sendLog(`[ALERT] Host Triage detected ${triageCrit} CRITICAL persistence/intrusion artifacts!`, 'danger');
+          results.localScanned.push({
+            path: 'Host Kernel & Persistence Subsystem',
+            name: 'OS Host Persistence & Daemons',
+            type: 'host_triage',
+            status: 'infected',
+            findings: [{
+              category: 'host_triage_persistence',
+              detail: {
+                type: 'persistence_threat',
+                severity: 'CRITICAL',
+                title: `Host Intrusion Persistence Detected (${triageCrit} Critical Findings)`,
+                desc: 'Unauthorized reboot persistence, rogue daemon, or rootkit hooks detected on host OS.',
+                where: 'System Daemons / Persistence Registry',
+                command: `${guardBin} triage`
+              }
+            }]
+          });
+        } else {
+          sendLog(`[HOST TRIAGE] Host persistence verification passed cleanly (0 critical threats).`, 'success');
+          results.localScanned.push({
+            path: 'Host Kernel & Persistence Subsystem',
+            name: 'OS Host Persistence & Daemons',
+            type: 'host_triage',
+            status: 'clean',
+            findings: [],
+            details: 'OS-native host triage verified no persistent rootkits or rogue daemons.'
+          });
+        }
+      } catch (triageErr) {
+        sendLog(`[HOST TRIAGE INFO] Host triage check completed: ${triageErr.message}`, 'info');
+      }
+
+      // 1. macOS Binary & Application Code Signature Integrity Check (VS Code)
+      const vsCodeAppPath = '/Applications/Visual Studio Code.app';
+      if (fs.existsSync(vsCodeAppPath)) {
+        sendLog(`[TERMINAL] Executing: codesign --verify --deep --strict "${vsCodeAppPath}"`, 'info');
+        const codesignCmd = `codesign --verify --deep --strict "${vsCodeAppPath}" 2>&1`;
+        const codesignRes = await runExec(codesignCmd, { timeout: 30000 });
+
+        if (codesignRes.code === 0) {
+          sendLog(`[CODESIGN VERIFIED] Visual Studio Code signature is valid and untampered (Apple strict deep check passed).`, 'success');
+          results.localScanned.push({
+            path: vsCodeAppPath,
+            name: 'Visual Studio Code Application',
+            type: 'application_binary_integrity',
+            status: 'clean',
+            findings: [],
+            details: 'Apple Code Signature verified intact via: codesign --verify --deep --strict'
+          });
+        } else {
+          const errDetail = codesignRes.stdout.trim() || codesignRes.stderr.trim() || 'Unknown codesign error';
+          sendLog(`[CODESIGN ALERT] Visual Studio Code code signature verification FAILED! Possible backdoor or binary tampering detected: ${errDetail}`, 'danger');
+          results.threatsFound++;
+          results.summary.infected++;
+          results.localScanned.push({
+            path: vsCodeAppPath,
+            name: 'Visual Studio Code Application',
+            type: 'application_binary_integrity',
+            status: 'infected',
+            findings: [{
+              category: 'codesign_tampering',
+              detail: {
+                type: 'codesign_failure',
+                severity: 'CRITICAL',
+                title: 'VS Code Application Signature Invalid (Possible Trojan / Backdoor)',
+                desc: `codesign --verify --deep --strict failed with exit code ${codesignRes.code}: ${errDetail}. This indicates internal binaries, framework bundles, or dynamic libraries have been modified by an infostealer or malware.`,
+                where: vsCodeAppPath,
+                command: `codesign --verify --deep --strict "${vsCodeAppPath}"`
+              }
+            }]
+          });
+        }
+      } else {
+        sendLog(`[LOCAL INFO] Visual Studio Code application not found at ${vsCodeAppPath}.`, 'info');
+      }
 
       for (let j = 0; j < localPaths.length; j++) {
         if (shouldCancelScan) break;

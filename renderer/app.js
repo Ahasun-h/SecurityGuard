@@ -17,8 +17,365 @@ let appState = {
   reposFetched: false,
   // Accounts
   savedAccounts: [],
-  activeGitHubLogin: null
+  activeGitHubLogin: null,
+  lastSyncedAt: null
 };
+
+// --- Repository Local Storage & Session Cache Helpers ---
+const REPO_CACHE_KEY_PREFIX = 'guard_repos_cache_';
+
+function getLocalRepoCache(login) {
+  try {
+    const raw = localStorage.getItem(REPO_CACHE_KEY_PREFIX + (login || 'default'));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed.repos) && parsed.repos.length > 0) {
+      return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed reading localStorage repo cache', e);
+  }
+  return null;
+}
+
+function setLocalRepoCache(login, repos, lastSyncedAt = new Date().toISOString()) {
+  try {
+    const payload = {
+      login: login || 'default',
+      lastSyncedAt,
+      repos
+    };
+    localStorage.setItem(REPO_CACHE_KEY_PREFIX + (login || 'default'), JSON.stringify(payload));
+    sessionStorage.setItem('guard_active_repos_loaded', 'true');
+  } catch (e) {
+    console.warn('Failed saving localStorage repo cache', e);
+  }
+}
+
+// --- Account-Scoped Scan Session & Historical Reports Store ---
+const SCAN_SESSION_KEY_PREFIX = 'guard_scan_session_';
+
+function getActiveAccountLogin() {
+  return (appState.githubAuth && appState.githubAuth.user && appState.githubAuth.user.login) ||
+         appState.activeGitHubLogin ||
+         'guest';
+}
+
+function getAccountScanSession() {
+  const login = getActiveAccountLogin();
+  try {
+    const raw = localStorage.getItem(SCAN_SESSION_KEY_PREFIX + login);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.scannedRepos === 'object') {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed reading scan session from localStorage', e);
+  }
+  return {
+    account: login,
+    lastUpdated: null,
+    scannedRepos: {}, // full_name -> { scannedAt, status: 'clean'|'infected', findingsCount, findings }
+    reports: []       // array of batch/full scan reports
+  };
+}
+
+function saveAccountScanSession(session) {
+  const login = getActiveAccountLogin();
+  session.account = login;
+  session.lastUpdated = new Date().toISOString();
+  try {
+    localStorage.setItem(SCAN_SESSION_KEY_PREFIX + login, JSON.stringify(session));
+  } catch (e) {
+    console.warn('Failed saving scan session to localStorage', e);
+  }
+}
+
+function clearAccountScanSession() {
+  const login = getActiveAccountLogin();
+  try {
+    localStorage.removeItem(SCAN_SESSION_KEY_PREFIX + login);
+  } catch (_) {}
+}
+
+function markThreatNeutralized(repoTarget, findingWhere) {
+  const session = getAccountScanSession();
+
+  // 1. Update scannedRepos
+  if (session.scannedRepos) {
+    let targetKey = repoTarget;
+    if (!session.scannedRepos[targetKey]) {
+      targetKey = Object.keys(session.scannedRepos).find(k => k === repoTarget || k.endsWith(repoTarget) || repoTarget.endsWith(k));
+    }
+
+    if (targetKey && session.scannedRepos[targetKey]) {
+      const repoEntry = session.scannedRepos[targetKey];
+      if (Array.isArray(repoEntry.findings)) {
+        repoEntry.findings.forEach(f => {
+          const w = (f.detail && (f.detail.where || f.detail.fullPath)) || f.where;
+          if (!findingWhere || w === findingWhere || repoEntry.findings.length === 1) {
+            f.neutralized = true;
+            f.neutralizedAt = new Date().toISOString();
+            if (f.detail && typeof f.detail === 'object') {
+              f.detail.neutralized = true;
+              f.detail.neutralizedAt = f.neutralizedAt;
+            }
+          }
+        });
+      }
+      const stillActive = (repoEntry.findings || []).some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+      if (!stillActive) {
+        repoEntry.status = 'clean';
+        repoEntry.neutralized = true;
+        repoEntry.neutralizedAt = new Date().toISOString();
+      }
+    }
+  }
+
+  // 2. Update historical batch reports in session
+  if (Array.isArray(session.reports)) {
+    session.reports.forEach(rep => {
+      if (Array.isArray(rep.reposScanned)) {
+        rep.reposScanned.forEach(r => {
+          if (r.full_name === repoTarget || r.name === repoTarget || repoTarget.endsWith(r.name)) {
+            if (Array.isArray(r.findings)) {
+              r.findings.forEach(f => {
+                const w = (f.detail && (f.detail.where || f.detail.fullPath)) || f.where;
+                if (!findingWhere || w === findingWhere || r.findings.length === 1) {
+                  f.neutralized = true;
+                  f.neutralizedAt = new Date().toISOString();
+                  if (f.detail && typeof f.detail === 'object') {
+                    f.detail.neutralized = true;
+                    f.detail.neutralizedAt = f.neutralizedAt;
+                  }
+                }
+              });
+            }
+            const stillActive = (r.findings || []).some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+            if (!stillActive) {
+              r.status = 'clean';
+            }
+          }
+        });
+      }
+      if (Array.isArray(rep.localScanned)) {
+        rep.localScanned.forEach(l => {
+          if (l.path === repoTarget) {
+            if (Array.isArray(l.findings)) {
+              l.findings.forEach(f => {
+                f.neutralized = true;
+                f.neutralizedAt = new Date().toISOString();
+              });
+            }
+            l.status = 'clean';
+          }
+        });
+      }
+    });
+  }
+
+  saveAccountScanSession(session);
+  updateRepoCounts();
+  renderDashboardPillCards();
+  renderGitHubFullGrid();
+  populateReportTab(getAggregatedSessionReport());
+}
+
+
+
+// Ingest Background PC Malware Scan into Session and Update Reports Screen
+function ingestBackgroundScanReport(report) {
+  if (!report || !Array.isArray(report.localScanned)) return;
+  const session = getAccountScanSession();
+  if (!session.reports) session.reports = [];
+
+  // Remove previous background_pc_scan report if already present to avoid duplication
+  session.reports = session.reports.filter(r => r.scanType !== 'background_pc_scan');
+  session.reports.unshift(report);
+  saveAccountScanSession(session);
+
+  // Update stat counters and populate report screen immediately
+  const agg = getAggregatedSessionReport();
+  populateReportTab(agg);
+  renderDashboardPillCards();
+}
+
+function getAggregatedSessionReport() {
+  const session = getAccountScanSession();
+  const scannedReposMap = session.scannedRepos || {};
+  const scannedFullNames = Object.keys(scannedReposMap);
+
+  let cleanCount = 0;
+  let infectedCount = 0;
+  const allFindings = [];
+  const reposScanned = [];
+
+  for (const fullName of scannedFullNames) {
+    const info = scannedReposMap[fullName];
+    const findings = info.findings || [];
+    const hasUnneutralized = findings.some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+    const isInf = info.status === 'infected' && hasUnneutralized;
+    if (isInf) infectedCount++;
+    else cleanCount++;
+
+    allFindings.push(...findings);
+
+    const matchedRepo = appState.repos.find(x => x.full_name === fullName);
+
+    reposScanned.push({
+      full_name: fullName,
+      name: fullName.split('/')[1] || fullName,
+      is_private: matchedRepo ? matchedRepo.is_private : true,
+      status: info.status,
+      scannedAt: info.scannedAt,
+      findings: findings
+    });
+  }
+
+  // Also collect any local targets scanned from session reports
+  const localScanned = [];
+  (session.reports || []).forEach(rep => {
+    if (Array.isArray(rep.localScanned)) {
+      rep.localScanned.forEach(loc => {
+        if (!localScanned.find(x => x.path === loc.path)) {
+          localScanned.push(loc);
+        }
+      });
+    }
+  });
+
+  return {
+    startedAt: session.lastUpdated || new Date().toISOString(),
+    finishedAt: session.lastUpdated || new Date().toISOString(),
+    totalTargets: appState.repos.length + localScanned.length,
+    scannedCount: scannedFullNames.length + localScanned.length,
+    threatsFound: infectedCount + localScanned.filter(l => l.status === 'infected').length,
+    reposScanned: reposScanned,
+    localScanned: localScanned,
+    summary: {
+      clean: cleanCount + localScanned.filter(l => l.status === 'clean').length,
+      infected: infectedCount + localScanned.filter(l => l.status === 'infected').length,
+      warnings: 0,
+      categories: {
+        vscode: 0,
+        magic: 0,
+        fingerprint: 0,
+        workflow_baseline: 0,
+        malicious_deps: 0,
+        av: 0
+      }
+    }
+  };
+}
+
+
+function updateRepoCounts() {
+  const session = getAccountScanSession();
+  const scannedMap = session.scannedRepos || {};
+
+  const scanned = appState.repos.filter(r => Boolean(scannedMap[r.full_name])).length;
+  const unscanned = appState.repos.length - scanned;
+  const privates = appState.repos.filter(r => r.is_private).length;
+  const publics = appState.repos.length - privates;
+
+  const countAll = document.getElementById('countAll');
+  const countScanned = document.getElementById('countScanned');
+  const countUnscanned = document.getElementById('countUnscanned');
+  const countPrivate = document.getElementById('countPrivate');
+  const countPublic = document.getElementById('countPublic');
+
+  if (countAll) countAll.textContent = appState.repos.length;
+  if (countScanned) countScanned.textContent = scanned;
+  if (countUnscanned) countUnscanned.textContent = unscanned;
+  if (countPrivate) countPrivate.textContent = privates;
+  if (countPublic) countPublic.textContent = publics;
+
+  if (appState.selectedRepoIds.size === 0 && appState.repos.length > 0) {
+    appState.selectedRepoIds = new Set(appState.repos.map(r => r.id));
+  }
+  updateSelectedCounts();
+}
+
+function updateCacheSyncBadge(text, type = 'success') {
+  const badge = document.getElementById('repoCacheSyncBadge');
+  if (!badge) return;
+  badge.style.display = 'inline-flex';
+  if (type === 'syncing') {
+    badge.style.background = '#fef6dc';
+    badge.style.color = '#a47d06';
+    badge.style.borderColor = 'rgba(164,125,6,0.2)';
+    badge.innerHTML = '<span class="spinner-dot" style="width:6px; height:6px; margin:0 5px 0 0;"></span> ' + text;
+  } else if (type === 'error') {
+    badge.style.background = '#fdeae8';
+    badge.style.color = '#d64739';
+    badge.style.borderColor = 'rgba(214,71,57,0.2)';
+    badge.innerHTML = '⚠️ ' + text;
+  } else {
+    badge.style.background = '#eef7f2';
+    badge.style.color = '#1e7e51';
+    badge.style.borderColor = 'rgba(30,126,81,0.2)';
+    badge.innerHTML = '⚡ ' + text;
+  }
+}
+
+function formatRelativeTime(isoString) {
+  if (!isoString) return 'Just now';
+  try {
+    const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return new Date(isoString).toLocaleDateString();
+  } catch (e) {
+    return 'Recently';
+  }
+}
+
+async function syncReposWithLiveServer({ silent = false, forceFull = false } = {}) {
+  const btnSync = document.getElementById('btnSyncCloudData');
+  if (btnSync && !silent) {
+    btnSync.disabled = true;
+    btnSync.textContent = 'Syncing Live Changes...';
+  }
+
+  updateCacheSyncBadge('Syncing live changes...', 'syncing');
+
+  try {
+    const userLogin = (appState.githubAuth && appState.githubAuth.user && appState.githubAuth.user.login) || 'Webgenius0';
+    const res = await window.guardAPI.syncGitHubRepos({ forceFull, login: userLogin });
+
+    if (res && res.success && Array.isArray(res.repos)) {
+      appState.repos = res.repos;
+      appState.reposFetched = true;
+      appState.lastSyncedAt = res.lastSyncedAt;
+
+      // Update local storage session
+      setLocalRepoCache(userLogin, res.repos, res.lastSyncedAt);
+
+      updateRepoCounts();
+      renderDashboardPillCards();
+      renderGitHubFullGrid();
+
+      const changesMsg = res.mode === 'full'
+        ? res.totalCount + ' repos synced'
+        : (res.newCount > 0 || res.updatedCount > 0
+            ? res.newCount + ' new, ' + res.updatedCount + ' updated'
+            : 'Live server in sync');
+
+      updateCacheSyncBadge('Live Synced (' + changesMsg + ')', 'success');
+    }
+  } catch (err) {
+    console.error('Incremental sync error:', err);
+    updateCacheSyncBadge('Sync failed: ' + err.message, 'error');
+  } finally {
+    if (btnSync) {
+      btnSync.disabled = false;
+      btnSync.textContent = 'Sync GitHub Repos';
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   initDockNavigation();
@@ -72,6 +429,10 @@ function switchView(tabId) {
 
   if (activeItem) activeItem.classList.add('active');
   if (activePane) activePane.classList.add('active');
+
+  if (tabId === 'view-reports') {
+    populateReportTab(getAggregatedSessionReport());
+  }
 }
 
 // Global Refresh
@@ -82,6 +443,74 @@ async function refreshAllStatus() {
     loadLocalTargets(),
     loadAiSettings()
   ]);
+}
+
+// Full Application Session & Cache Purge Helper
+function clearAppSession() {
+  console.log('[Session] Purging local session, cached repos, and state...');
+  clearAccountScanSession();
+
+  // In-memory state
+  appState.repos = [];
+  appState.selectedRepoIds.clear();
+  appState.githubAuth = { authenticated: false, user: null };
+  appState.activeGitHubLogin = null;
+  appState.savedAccounts = [];
+  appState.lastSyncedAt = null;
+  appState.reposFetched = false;
+  appState.reposFetching = false;
+  appState.lastScanReport = null;
+
+  // Browser LocalStorage & SessionStorage
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith(REPO_CACHE_KEY_PREFIX) || k.startsWith('guard_'))) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch (e) {
+    console.warn('Error clearing browser storage:', e);
+  }
+
+  // UI Counts & Badges
+  const countAll = document.getElementById('countAll');
+  const countPrivate = document.getElementById('countPrivate');
+  const countPublic = document.getElementById('countPublic');
+  if (countAll) countAll.textContent = '0';
+  if (countPrivate) countPrivate.textContent = '0';
+  if (countPublic) countPublic.textContent = '0';
+
+  const syncBadge = document.getElementById('repoCacheSyncBadge');
+  if (syncBadge) {
+    syncBadge.style.display = 'none';
+    syncBadge.innerHTML = '';
+  }
+
+  const searchBadge = document.getElementById('homeSearchCountBadge');
+  if (searchBadge) {
+    searchBadge.style.display = 'none';
+  }
+
+  // Sidebar & Settings User Badges
+  const sideName = document.getElementById('sideUserName');
+  const sideAvatarImg = document.getElementById('sideAvatarImg');
+  const settUserTitle = document.getElementById('settingsGhUserTitle');
+  const settUserSub = document.getElementById('settingsGhUserSub');
+  if (sideName) sideName.textContent = 'Sign in';
+  if (sideAvatarImg) sideAvatarImg.style.display = 'none';
+  if (settUserTitle) settUserTitle.textContent = 'Not Connected';
+  if (settUserSub) settUserSub.textContent = 'Configure PAT or log in with GitHub CLI.';
+
+  // Re-render empty views
+  renderDashboardPillCards();
+  renderGitHubFullGrid();
+
+  const tabSelectedCount = document.getElementById('selectedCountTab');
+  if (tabSelectedCount) tabSelectedCount.textContent = '0';
 }
 
 // 1. Check Guard Engine
@@ -121,12 +550,44 @@ async function checkGitHubAuth() {
       settUserTitle.textContent = `@${res.user.login} (${res.user.name || res.user.login})`;
       settUserSub.textContent = `Active via ${res.source === 'gh-cli' ? 'GitHub CLI (Keyring)' : 'Personal Access Token'}`;
 
-      await loadGitHubRepos();
+      // Instant restore from Local Storage session or local disk cache
+      const localCache = getLocalRepoCache(res.user.login);
+      if (localCache && localCache.repos && localCache.repos.length > 0) {
+        console.log('[Cache] Restored', localCache.repos.length, 'repos from localStorage');
+        appState.repos = localCache.repos;
+        appState.reposFetched = true;
+        appState.lastSyncedAt = localCache.lastSyncedAt;
+        updateRepoCounts();
+        renderDashboardPillCards();
+        renderGitHubFullGrid();
+        updateCacheSyncBadge(`Local Session (${localCache.repos.length} repos) • Synced ${formatRelativeTime(localCache.lastSyncedAt)}`, 'success');
+
+        // Fast background live server check without blocking the user
+        syncReposWithLiveServer({ silent: true });
+      } else {
+        const diskCache = await window.guardAPI.getCachedRepos(res.user.login);
+        if (diskCache && diskCache.repos && diskCache.repos.length > 0) {
+          console.log('[Cache] Restored', diskCache.repos.length, 'repos from disk session cache');
+          setLocalRepoCache(res.user.login, diskCache.repos, diskCache.lastSyncedAt);
+          appState.repos = diskCache.repos;
+          appState.reposFetched = true;
+          appState.lastSyncedAt = diskCache.lastSyncedAt;
+          updateRepoCounts();
+          renderDashboardPillCards();
+          renderGitHubFullGrid();
+          updateCacheSyncBadge(`Local Session (${diskCache.repos.length} repos) • Synced ${formatRelativeTime(diskCache.lastSyncedAt)}`, 'success');
+
+          syncReposWithLiveServer({ silent: true });
+        } else {
+          // No cache exists yet
+          await loadGitHubRepos();
+        }
+      }
     } else {
-      sideName.textContent = 'Sign in';
-      sideAvatarImg.style.display = 'none';
-      settUserTitle.textContent = 'Not Connected';
-      settUserSub.textContent = 'Configure PAT or log in with GitHub CLI.';
+      clearAppSession();
+      // Launch screen redirects to GitHub connect when not authenticated
+      switchView('view-account');
+      renderAccountsView();
     }
   } catch (e) {
     console.error('GitHub auth check error:', e);
@@ -163,12 +624,18 @@ async function loadGitHubRepos() {
     document.getElementById('countPrivate').textContent = privates;
     document.getElementById('countPublic').textContent = publics;
 
+    // Cache to local storage session
+    const userLogin = (appState.githubAuth && appState.githubAuth.user && appState.githubAuth.user.login) || 'Webgenius0';
+    appState.lastSyncedAt = new Date().toISOString();
+    setLocalRepoCache(userLogin, allRepos, appState.lastSyncedAt);
+
     // Select all by default
     appState.selectedRepoIds = new Set(allRepos.map(r => r.id));
     updateSelectedCounts();
 
     renderDashboardPillCards();
     renderGitHubFullGrid();
+    updateCacheSyncBadge(`Local Session (${allRepos.length} repos) • Up to date`, 'success');
   } catch (err) {
     appState.reposFetching = false;
     console.error('Load repos error:', err);
@@ -206,9 +673,14 @@ function renderDashboardPillCards() {
     }));
   } else {
     // Show GitHub Repos according to filter
+    const session = getAccountScanSession();
+    const scannedMap = session.scannedRepos || {};
+
     let filteredRepos = appState.repos.filter(r => {
       if (appState.activeFilter === 'private' && !r.is_private) return false;
       if (appState.activeFilter === 'public' && r.is_private) return false;
+      if (appState.activeFilter === 'scanned' && !scannedMap[r.full_name]) return false;
+      if (appState.activeFilter === 'unscanned' && Boolean(scannedMap[r.full_name])) return false;
       if (appState.searchQuery) {
         const q = appState.searchQuery.toLowerCase();
         return r.full_name.toLowerCase().includes(q) || (r.language || '').toLowerCase().includes(q);
@@ -216,16 +688,52 @@ function renderDashboardPillCards() {
       return true;
     });
 
+    const badge = document.getElementById('homeSearchCountBadge');
+    if (badge) {
+      badge.textContent = `${filteredRepos.length} matched`;
+      badge.style.display = appState.searchQuery ? 'inline-block' : 'none';
+    }
+
     const themes = ['theme-coral', 'theme-periwinkle', 'theme-turquoise'];
 
     items = filteredRepos.slice(0, appState.displayCount).map((r, idx) => {
       const theme = r.is_private ? 'theme-coral' : (idx % 2 === 0 ? 'theme-periwinkle' : 'theme-turquoise');
+      const scanInfo = scannedMap[r.full_name];
+
+      let scanBadgeText = '⏳ Not yet scanned';
+      let scanBadgeColor = 'var(--text-muted)';
+      let scanBadgeBg = 'var(--bg-canvas)';
+      let scanBadgeBorder = '1px solid var(--border-light)';
+
+      if (scanInfo) {
+        if (scanInfo.status === 'clean') {
+          scanBadgeText = `✅ Clean • ${formatRelativeTime(scanInfo.scannedAt)}`;
+          scanBadgeColor = '#1e7e51';
+          scanBadgeBg = '#eef7f2';
+          scanBadgeBorder = '1px solid rgba(30,126,81,0.2)';
+        } else if (scanInfo.status === 'infected') {
+          scanBadgeText = `🚨 INFECTED (${scanInfo.findingsCount || 1} threats)`;
+          scanBadgeColor = '#d64739';
+          scanBadgeBg = '#fdeae8';
+          scanBadgeBorder = '1px solid rgba(214,71,57,0.2)';
+        } else {
+          scanBadgeText = `⚠️ Scanned (${scanInfo.status})`;
+          scanBadgeColor = '#a47d06';
+          scanBadgeBg = '#fef6dc';
+          scanBadgeBorder = '1px solid rgba(164,125,6,0.2)';
+        }
+      }
+
       return {
         type: 'github',
         id: r.id,
         title: r.name,
         sub: r.description || `Branch: ${r.default_branch || 'main'} • Size: ${r.size || 0} KB`,
         badge: r.is_private ? 'Private Repo' : 'Public Repo',
+        scanBadgeText,
+        scanBadgeColor,
+        scanBadgeBg,
+        scanBadgeBorder,
         theme: theme,
         icon: r.is_private ? '🔒' : '🌐',
         raw: r
@@ -234,11 +742,23 @@ function renderDashboardPillCards() {
   }
 
   if (items.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state-box" style="padding: 24px; text-align: center; color: var(--text-muted);">
-        <p>No repositories or targets found matching this view.</p>
-      </div>
-    `;
+    if (!appState.githubAuth.authenticated && appState.activeFilter !== 'local') {
+      container.innerHTML = `
+        <div class="empty-state-box" style="padding: 32px 20px; text-align: center; color: var(--text-muted);">
+          <p style="font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">GitHub Disconnected</p>
+          <p style="font-size: 12px; margin-bottom: 14px;">Connect your GitHub account to load, monitor, and scan repositories.</p>
+          <button class="btn-pill-primary" id="btnEmptyConnectGh" style="font-size: 11px; padding: 6px 16px;">Connect Account</button>
+        </div>
+      `;
+      const btn = document.getElementById('btnEmptyConnectGh');
+      if (btn) btn.addEventListener('click', () => switchView('view-account'));
+    } else {
+      container.innerHTML = `
+        <div class="empty-state-box" style="padding: 24px; text-align: center; color: var(--text-muted);">
+          <p>No repositories or targets found matching this view.</p>
+        </div>
+      `;
+    }
     return;
   }
 
@@ -249,7 +769,10 @@ function renderDashboardPillCards() {
           ${item.icon}
         </div>
         <div class="pill-card-text">
-          <strong>${item.title}</strong>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong>${item.title}</strong>
+            ${item.scanBadgeText ? `<span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; color:${item.scanBadgeColor}; background:${item.scanBadgeBg}; border:${item.scanBadgeBorder};">${item.scanBadgeText}</span>` : ''}
+          </div>
           <p>${item.sub}</p>
         </div>
       </div>
@@ -497,8 +1020,18 @@ async function loadAiSettings() {
   }
 }
 
-// 5. Scan Pipeline Execution
+// 5. Scan Pipeline Execution with 10-Repo Batch Breakdown
+let isScanPipelineRunning = false;
+let shouldStopScanPipeline = false;
+
 async function startScanPipeline(options) {
+  if (isScanPipelineRunning) {
+    alert('A scan is already currently running.');
+    return;
+  }
+  isScanPipelineRunning = true;
+  shouldStopScanPipeline = false;
+
   const modal = document.getElementById('scannerModal');
   const targetLabel = document.getElementById('modalCurrentTarget');
   const bar = document.getElementById('modalProgressBar');
@@ -510,13 +1043,27 @@ async function startScanPipeline(options) {
   bar.style.width = '0%';
   percentTxt.textContent = '0%';
   countTxt.textContent = '0 Targets';
-  targetLabel.textContent = 'Bootstrapping Guard supply-chain pipeline...';
+  targetLabel.textContent = 'Initializing Batch Scan Engine (10 repos per batch)...';
   modal.classList.add('active');
 
+  const githubRepos = options.githubRepos || [];
+  const localPaths = options.localPaths || Array.from(appState.selectedLocalPaths);
+  const scanLocalPc = options.scanLocalPc !== false;
+  const isAvEnabled = document.getElementById('chkFilterAv') ? document.getElementById('chkFilterAv').checked : true;
+  const isGitDeep = document.getElementById('chkFilterGit') ? document.getElementById('chkFilterGit').checked : false;
+
+  // Breakdown GitHub Repos into batches of 10
+  const BATCH_SIZE = 10;
+  const repoBatches = [];
+  for (let i = 0; i < githubRepos.length; i += BATCH_SIZE) {
+    repoBatches.push(githubRepos.slice(i, i + BATCH_SIZE));
+  }
+
+  const totalReposCount = githubRepos.length;
+  let cumulativeScanned = 0;
+  let cumulativeThreats = 0;
+
   window.guardAPI.onScanProgress(data => {
-    bar.style.width = `${data.percent}%`;
-    percentTxt.textContent = `${data.percent}%`;
-    countTxt.textContent = `${data.current} / ${data.total} Targets`;
     targetLabel.textContent = `[${data.phase.toUpperCase()}] ${data.currentTarget}`;
   });
 
@@ -529,49 +1076,147 @@ async function startScanPipeline(options) {
   });
 
   try {
-    const isAvEnabled = document.getElementById('chkFilterAv').checked;
-    const isGitDeep = document.getElementById('chkFilterGit').checked;
+    const session = getAccountScanSession();
 
-    const payload = {
-      githubRepos: options.githubRepos || [],
-      localPaths: options.localPaths || Array.from(appState.selectedLocalPaths),
-      scanLocalPc: options.scanLocalPc !== false,
-      runAntivirus: isAvEnabled,
-      deepGitScan: isGitDeep
-    };
+    // 1. Scan Local Workstation First if enabled
+    if (scanLocalPc && localPaths.length > 0 && !shouldStopScanPipeline) {
+      targetLabel.textContent = 'Inspecting Local Workstation Filesystem...';
+      const localReport = await window.guardAPI.startScan({
+        githubRepos: [],
+        localPaths,
+        scanLocalPc: true,
+        runAntivirus: isAvEnabled,
+        deepGitScan: isGitDeep
+      });
+      if (localReport) {
+        session.reports.push(localReport);
+        saveAccountScanSession(session);
+        populateReportTab(getAggregatedSessionReport());
+      }
+    }
 
-    const report = await window.guardAPI.startScan(payload);
-    appState.lastScanReport = report;
+    // 2. Scan GitHub Repositories in Batches of 10
+    if (repoBatches.length > 0) {
+      for (let bIdx = 0; bIdx < repoBatches.length; bIdx++) {
+        if (shouldStopScanPipeline) {
+          const div = document.createElement('div');
+          div.className = 'warning';
+          div.textContent = `[STOPPED] Scan halted by user after Batch ${bIdx}/${repoBatches.length}.`;
+          logs.appendChild(div);
+          break;
+        }
+
+        const batch = repoBatches[bIdx];
+        const batchNum = bIdx + 1;
+        targetLabel.textContent = `Scanning Batch ${batchNum} of ${repoBatches.length} (10 Repositories)...`;
+
+        const overallPercent = Math.round((cumulativeScanned / (totalReposCount || 1)) * 100);
+        bar.style.width = `${overallPercent}%`;
+        percentTxt.textContent = `${overallPercent}% (Batch ${batchNum}/${repoBatches.length})`;
+        countTxt.textContent = `${cumulativeScanned} / ${totalReposCount} Repos`;
+
+        // Execute scan for this batch of 10
+        const batchReport = await window.guardAPI.startScan({
+          githubRepos: batch,
+          localPaths: [],
+          scanLocalPc: false,
+          runAntivirus: isAvEnabled,
+          deepGitScan: isGitDeep
+        });
+
+        cumulativeScanned += (batchReport.reposScanned || []).length;
+        cumulativeThreats += (batchReport.threatsFound || 0);
+
+        // Store this batch of 10 in session
+        (batchReport.reposScanned || []).forEach(r => {
+          session.scannedRepos[r.full_name] = {
+            scannedAt: new Date().toISOString(),
+            status: r.status,
+            findingsCount: (r.findings || []).length,
+            findings: r.findings || []
+          };
+        });
+
+        session.reports.push({
+          batchNumber: batchNum,
+          totalBatches: repoBatches.length,
+          ...batchReport
+        });
+        saveAccountScanSession(session);
+
+        // LIVE UPDATE: Generate/Update Report in real-time
+        const currentAggReport = getAggregatedSessionReport();
+        appState.lastScanReport = currentAggReport;
+        populateReportTab(currentAggReport);
+
+        // LIVE UPDATE: Update Dashboard Repos Badges & Counts
+        updateRepoCounts();
+        renderDashboardPillCards();
+        renderGitHubFullGrid();
+
+        // Telemetry log in modal
+        const logDiv = document.createElement('div');
+        logDiv.className = batchReport.threatsFound > 0 ? 'danger' : 'success';
+        logDiv.textContent = `[REPORT GENERATED] Batch ${batchNum}/${repoBatches.length} (10 repos) complete! Generated report. Threats: ${batchReport.threatsFound}.`;
+        logs.appendChild(logDiv);
+        logs.scrollTop = logs.scrollHeight;
+
+        const updatedPercent = Math.round((cumulativeScanned / (totalReposCount || 1)) * 100);
+        bar.style.width = `${updatedPercent}%`;
+        percentTxt.textContent = `${updatedPercent}%`;
+        countTxt.textContent = `${cumulativeScanned} / ${totalReposCount} Repos`;
+
+        // Small pause between batches to allow UI to breathe and user to cancel
+        if (bIdx < repoBatches.length - 1 && !shouldStopScanPipeline) {
+          await new Promise(r => setTimeout(r, 800));
+        }
+      }
+    }
 
     setTimeout(() => {
       modal.classList.remove('active');
       switchView('view-reports');
-      populateReportTab(report);
-    }, 1200);
+      populateReportTab(getAggregatedSessionReport());
+    }, 1000);
 
   } catch (e) {
+    console.error('Scan error:', e);
     alert('Scan error: ' + e.message);
     modal.classList.remove('active');
+  } finally {
+    isScanPipelineRunning = false;
   }
 }
 
-// 6. Populate Threat Reports Tab
+// 6. Populate Threat Reports Tab (Persisted Per-Account Session Reports)
 function populateReportTab(report) {
-  if (!report) return;
+  const session = getAccountScanSession();
+  const effectiveReport = report || getAggregatedSessionReport();
 
-  document.getElementById('statScannedCount').textContent = report.scannedCount || 0;
-  document.getElementById('statThreatCount').textContent = report.threatsFound || 0;
-  document.getElementById('statCleanCount').textContent = report.summary ? report.summary.clean : 0;
-  document.getElementById('statWarningsCount').textContent = report.summary ? report.summary.warnings : 0;
+  // Update session header info in reports tab
+  const tagEl = document.getElementById('reportSessionAccountTag');
+  const sumEl = document.getElementById('reportSessionSummaryTxt');
+  const lastEl = document.getElementById('reportSessionLastScannedTxt');
+
+  if (tagEl) tagEl.textContent = `Active Session: @${session.account || 'Unknown'}`;
+  if (sumEl) sumEl.textContent = `Scan Session: ${effectiveReport.scannedCount || 0} of ${appState.repos.length} Repos Scanned (${session.reports ? session.reports.length : 0} Batches)`;
+  if (lastEl) lastEl.textContent = session.lastUpdated ? `Last Scan: ${formatRelativeTime(session.lastUpdated)}` : 'Last Scan: Never';
+
+  document.getElementById('statScannedCount').textContent = effectiveReport.scannedCount || 0;
+  document.getElementById('statThreatCount').textContent = effectiveReport.threatsFound || 0;
+  document.getElementById('statCleanCount').textContent = effectiveReport.summary ? effectiveReport.summary.clean : 0;
+  document.getElementById('statWarningsCount').textContent = effectiveReport.summary ? effectiveReport.summary.warnings : 0;
+
+  const reportToRender = effectiveReport;
 
   const allItems = [
-    ...(report.reposScanned || []).map(r => ({
+    ...(reportToRender.reposScanned || []).map(r => ({
       title: r.full_name,
       type: r.is_private ? '🔒 Private' : '🌐 Public',
       status: r.status,
       findings: r.findings
     })),
-    ...(report.localScanned || []).map(l => ({
+    ...(reportToRender.localScanned || []).map(l => ({
       title: l.path,
       type: '💻 Workstation',
       status: l.status,
@@ -585,64 +1230,86 @@ function populateReportTab(report) {
     return;
   }
 
-  container.innerHTML = allItems.map((item, itemIdx) => `
-    <div style="background:#ffffff; border:1px solid var(--border-light); border-radius:12px; padding:14px 16px; margin-bottom:10px; border-left: 4px solid ${item.status === 'infected' ? 'var(--accent-coral)' : 'var(--accent-green)'}">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+  container.innerHTML = allItems.map((item, itemIdx) => {
+    const findingsList = item.findings || [];
+    const hasUnneutralized = findingsList.some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+    const isCleanOrNeutralized = item.status === 'clean' || (!hasUnneutralized && findingsList.length > 0);
+    const badgeColor = isCleanOrNeutralized ? '#1e7e51' : '#d64739';
+    const badgeBg = isCleanOrNeutralized ? '#e6f6ee' : '#fdeae8';
+    const badgeText = isCleanOrNeutralized ? (findingsList.length > 0 ? 'NEUTRALIZED' : 'CLEAN') : 'INFECTED';
+    const borderLeftColor = isCleanOrNeutralized ? 'var(--accent-green)' : 'var(--accent-coral)';
+
+    return `
+    <div style="background:#ffffff; border:1px solid var(--border-light); border-radius:12px; padding:14px 16px; margin-bottom:10px; border-left: 4px solid ${borderLeftColor};">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px; flex-wrap:wrap; gap:8px;">
         <div>
           <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">${item.type}</span>
           <strong style="font-size:14px; color:var(--text-main); display:block; margin-top:2px;">${item.title}</strong>
         </div>
-        <span style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:var(--radius-pill); background:${item.status === 'infected' ? '#fdeae8' : '#e6f6ee'}; color:${item.status === 'infected' ? '#d64739' : '#1e7e51'};">
-          ${item.status.toUpperCase()}
+        <span style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:var(--radius-pill); background:${badgeBg}; color:${badgeColor};">
+          ${badgeText}
         </span>
       </div>
-      ${item.findings && item.findings.length > 0 ? `
+      ${findingsList.length > 0 ? `
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
-          ${item.findings.map(f => {
+          ${findingsList.map(f => {
             const info = formatFinding(f);
             return `
-              <div style="background:#f9f7f2; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:4px; background:${info.severity === 'CRITICAL' ? '#fdeae8' : '#fef6dc'}; color:${info.severity === 'CRITICAL' ? '#d64739' : '#a47d06'}; font-family:var(--font-mono);">
-                    ${info.severity} // ${info.category}
+              <div style="background:#f9f7f2; border:1px solid var(--border-light); border-radius:8px; padding:10px 12px; min-width:0; word-break:break-word;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                  <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:4px; background:${info.isNeutralized ? '#e6f6ee' : (info.severity === 'CRITICAL' ? '#fdeae8' : '#fef6dc')}; color:${info.isNeutralized ? '#1e7e51' : (info.severity === 'CRITICAL' ? '#d64739' : '#a47d06')}; font-family:var(--font-mono);">
+                    ${info.isNeutralized ? '✓ NEUTRALIZED' : `${info.severity} // ${info.category}`}
                   </span>
                   <strong style="font-size:12px; color:var(--text-main);">${info.title}</strong>
                 </div>
-                <p style="font-size:11px; color:var(--text-muted); margin:6px 0;">${info.desc}</p>
-                ${info.where ? `<div style="font-size:10px; color:var(--text-main); font-family:var(--font-mono); background:#ffffff; padding:4px 8px; border-radius:4px; border:1px solid var(--border-light); word-break:break-all;">📁 ${info.where}</div>` : ''}
-                ${info.isActionable ? `
+                <p style="font-size:11px; color:var(--text-muted); margin:6px 0; line-height:1.4;">${info.desc}</p>
+                ${info.where ? `<div style="font-size:10px; color:var(--text-main); font-family:var(--font-mono); background:#ffffff; padding:4px 8px; border-radius:4px; border:1px solid var(--border-light); word-break:break-all; overflow-wrap:anywhere;">📁 ${info.where}</div>` : ''}
+                ${info.isNeutralized ? `
                   <div style="margin-top:8px;">
-                    <button class="btn-clean-action" data-where="${info.where}" data-raw='${JSON.stringify(info.raw).replace(/'/g, "&apos;")}' style="background:var(--accent-yellow); color:var(--text-main); border:none; padding:4px 12px; border-radius:var(--radius-pill); font-size:11px; font-weight:700; cursor:pointer;">
-                      ⚡ Auto-Clean Threat
+                    <span style="font-size:11px; font-weight:700; color:#1e7e51; background:#e6f6ee; padding:4px 10px; border-radius:var(--radius-pill); display:inline-flex; align-items:center; gap:5px;">
+                      🛡️ Neutralized • Saved in Session
+                    </span>
+                  </div>
+                ` : (info.isActionable ? `
+                  <div style="margin-top:8px;">
+                    <button class="btn-clean-action" data-repo="${item.title}" data-where="${info.where}" data-raw='${JSON.stringify(info.raw).replace(/'/g, "&apos;")}' style="background:var(--accent-yellow); color:var(--text-main); border:none; padding:5px 14px; border-radius:var(--radius-pill); font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                      ⚡ Neutralize Threat
                     </button>
                   </div>
-                ` : ''}
+                ` : '')}
               </div>
             `;
           }).join('')}
         </div>
       ` : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 
-  // Wire auto-clean buttons
+  // Wire auto-clean buttons to neutralize and persist to session
   container.querySelectorAll('.btn-clean-action').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const raw = JSON.parse(btn.getAttribute('data-raw'));
-      btn.textContent = 'Cleaning...';
+      const repoTarget = btn.getAttribute('data-repo') || raw.repoFullName || raw.where;
+      const findingWhere = btn.getAttribute('data-where');
+
+      btn.disabled = true;
+      btn.textContent = 'Neutralizing...';
+
       try {
         const res = await window.guardAPI.autoCleanThreat(raw);
         if (res.success) {
-          btn.textContent = '✓ Neutralized';
-          btn.style.background = '#e6f6ee';
-          btn.style.color = '#1e7e51';
-          alert(res.message);
+          markThreatNeutralized(repoTarget, findingWhere);
+          alert(res.message || 'Threat successfully neutralized and recorded in session.');
         } else {
+          btn.disabled = false;
           btn.textContent = 'Fix manually';
           alert('Notice: ' + res.error);
         }
       } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Retry Neutralize';
         alert('Error: ' + err.message);
       }
     });
@@ -657,6 +1324,7 @@ function formatFinding(f) {
     } catch (_) {}
   }
 
+  const isNeutralized = Boolean(f.neutralized || (typeof data === 'object' && data.neutralized));
   let title = 'Security Anomaly';
   let desc = typeof data === 'string' ? data : (data.desc || data.details || JSON.stringify(data));
   let where = typeof data === 'object' && data.where ? data.where : (typeof data === 'object' && data.fullPath ? data.fullPath : '');
@@ -732,9 +1400,20 @@ function formatFinding(f) {
     title = 'CI/CD Workflow Tampering';
   } else if (category === 'AV') {
     title = 'Antivirus Signature Match';
+  } else if (category === 'CODESIGN_TAMPERING' || category === 'CODESIGN') {
+    title = (typeof data === 'object' && data.title) || 'VS Code Application Binary Tampering';
+    category = 'BINARY INTEGRITY';
+    severity = 'CRITICAL';
+    isActionable = false;
   }
 
-  return { title, desc, where, category, severity, isActionable, raw: typeof data === 'object' ? data : { where, desc } };
+  if (isNeutralized) {
+    severity = 'NEUTRALIZED';
+    category = 'REMEDIATED';
+    isActionable = false;
+  }
+
+  return { title, desc, where, category, severity, isActionable, isNeutralized, raw: typeof data === 'object' ? data : { where, desc } };
 }
 
 // 7. Event Listeners Setup
@@ -769,7 +1448,21 @@ function initEventListeners() {
   });
 
   // Global Search Input
-  document.getElementById('globalSearchInput').addEventListener('input', (e) => {
+  
+  // Home Screen Dedicated Repo Search
+  const homeSearch = document.getElementById('homeRepoSearchInput');
+  if (homeSearch) {
+    homeSearch.addEventListener('input', (e) => {
+      appState.searchQuery = e.target.value.trim();
+      const topSearch = document.getElementById('globalSearchInput');
+      if (topSearch && topSearch.value !== e.target.value) {
+        topSearch.value = e.target.value;
+      }
+      renderDashboardPillCards();
+    });
+  }
+
+document.getElementById('globalSearchInput').addEventListener('input', (e) => {
     appState.searchQuery = e.target.value.trim();
     renderDashboardPillCards();
   });
@@ -812,10 +1505,149 @@ function initEventListeners() {
     });
   });
 
-  // Cancel Scan
+  // VS Code Codesign Direct Verify button
+  const btnVerifyVsCode = document.getElementById('btnVerifyVsCodeDirect');
+  const vsBanner = document.getElementById('vscodeCodesignBanner');
+  const vsBadge = document.getElementById('vscodeCodesignBadge');
+  const vsMsg = document.getElementById('vscodeCodesignMsg');
+  const btnCloseVs = document.getElementById('btnCloseVsCodeBanner');
+
+  if (btnCloseVs && vsBanner) {
+    btnCloseVs.addEventListener('click', () => {
+      vsBanner.style.display = 'none';
+    });
+  }
+
+  if (btnVerifyVsCode) {
+    btnVerifyVsCode.addEventListener('click', async () => {
+      btnVerifyVsCode.disabled = true;
+      btnVerifyVsCode.textContent = 'Verifying Terminal Signature...';
+
+      if (vsBanner) {
+        vsBanner.style.display = 'block';
+        vsBadge.style.background = '#fef6dc';
+        vsBadge.style.color = '#a47d06';
+        vsBadge.textContent = 'RUNNING';
+        vsMsg.textContent = 'Executing Apple strict deep verification on terminal...';
+      }
+
+      try {
+        const res = await window.guardAPI.verifyVsCodeCodesign();
+        if (res.success) {
+          vsBadge.style.background = '#eef7f2';
+          vsBadge.style.color = '#1e7e51';
+          vsBadge.textContent = 'VERIFIED INTACT';
+          vsMsg.innerHTML = '<span style="color:#1e7e51; font-weight:700;">✅ Safe:</span> ' + res.output;
+        } else {
+          vsBadge.style.background = '#fdeae8';
+          vsBadge.style.color = '#d64739';
+          vsBadge.textContent = 'TAMPERED / FAILED';
+          vsMsg.innerHTML = '<span style="color:#d64739; font-weight:700;">⚠️ Threat Detected:</span> ' + res.output;
+        }
+      } catch (err) {
+        if (vsBadge) {
+          vsBadge.style.background = '#fdeae8';
+          vsBadge.style.color = '#d64739';
+          vsBadge.textContent = 'ERROR';
+        }
+        if (vsMsg) vsMsg.textContent = 'Execution failed: ' + err.message;
+      } finally {
+        btnVerifyVsCode.disabled = false;
+        btnVerifyVsCode.innerHTML = '🛡️ Verify VS Code Signature';
+      }
+    });
+  }
+
+  
+  // Antigravity Code Signature Direct Verify button
+  const btnVerifyAntigravity = document.getElementById('btnVerifyAntigravityDirect');
+  if (btnVerifyAntigravity) {
+    btnVerifyAntigravity.addEventListener('click', async () => {
+      btnVerifyAntigravity.disabled = true;
+      btnVerifyAntigravity.textContent = 'Verifying Antigravity Signature...';
+
+      if (vsBanner) {
+        vsBanner.style.display = 'block';
+        vsBadge.style.background = '#fef6dc';
+        vsBadge.style.color = '#a47d06';
+        vsBadge.textContent = 'RUNNING';
+        const cmdEl = document.getElementById('vscodeCodesignCmd');
+        if (cmdEl) cmdEl.textContent = 'codesign --verify --deep --strict "/Applications/Antigravity IDE.app"';
+        vsMsg.textContent = 'Executing strict deep signature verification on Antigravity IDE...';
+      }
+
+      try {
+        const res = await window.guardAPI.verifyAppSignature('antigravity');
+        const cmdEl = document.getElementById('vscodeCodesignCmd');
+        if (cmdEl && res.command) cmdEl.textContent = res.command;
+
+        if (res.success) {
+          vsBadge.style.background = '#eef7f2';
+          vsBadge.style.color = '#1e7e51';
+          vsBadge.textContent = 'VERIFIED INTACT';
+          vsMsg.innerHTML = '<span style="color:#1e7e51; font-weight:700;">✅ Safe:</span> ' + res.appName + ' signature is sealed, valid, and untampered: ' + res.output;
+        } else {
+          vsBadge.style.background = '#fdeae8';
+          vsBadge.style.color = '#d64739';
+          vsBadge.textContent = 'TAMPERED / FAILED';
+          vsMsg.innerHTML = '<span style="color:#d64739; font-weight:700;">⚠️ Threat Detected:</span> ' + res.output;
+        }
+      } catch (err) {
+        if (vsBadge) {
+          vsBadge.style.background = '#fdeae8';
+          vsBadge.style.color = '#d64739';
+          vsBadge.textContent = 'ERROR';
+        }
+        if (vsMsg) vsMsg.textContent = 'Verification error: ' + err.message;
+      } finally {
+        btnVerifyAntigravity.disabled = false;
+        btnVerifyAntigravity.innerHTML = '🚀 Verify Antigravity';
+      }
+    });
+  }
+
+  // Cancel / Pause Scan Pipeline
   document.getElementById('btnCancelScan').addEventListener('click', async () => {
+    shouldStopScanPipeline = true;
     await window.guardAPI.cancelScan();
   });
+
+  // Reset Session Reports Button
+  const btnClearReports = document.getElementById('btnClearSessionReports');
+  if (btnClearReports) {
+    btnClearReports.addEventListener('click', () => {
+      if (confirm('Clear scan report history for this GitHub session?')) {
+        clearAccountScanSession();
+        updateRepoCounts();
+        renderDashboardPillCards();
+        renderGitHubFullGrid();
+        populateReportTab(getAggregatedSessionReport());
+      }
+    });
+  }
+
+  // Account Tab: Browser OAuth button
+  const btnAcctTabOAuth = document.getElementById('btnAccountTabOAuthBrowser');
+  if (btnAcctTabOAuth) {
+    btnAcctTabOAuth.addEventListener('click', async () => {
+      const fb = document.getElementById('addAccountFeedback');
+      if (fb) fb.textContent = 'Authenticating in browser...';
+      try {
+        const res = await window.guardAPI.loginGitHubBrowser();
+        if (res.success) {
+          if (fb) fb.textContent = '✓ Successfully connected @' + (res.user.login || 'GitHub');
+          await checkGitHubAuth();
+          await loadSavedAccountsInSettings();
+          await renderAccountsView();
+          switchView('view-dashboard');
+        } else {
+          if (fb) fb.textContent = 'OAuth Error: ' + res.error;
+        }
+      } catch (err) {
+        if (fb) fb.textContent = 'OAuth Failed: ' + err.message;
+      }
+    });
+  }
 
   // AI Analysis Trigger
   document.getElementById('btnGenerateAiTab').addEventListener('click', async () => {
@@ -913,11 +1745,40 @@ function initEventListeners() {
     }
   });
 
-  document.getElementById('btnResyncGhCli').addEventListener('click', async () => {
-    document.getElementById('cfgGhToken').value = '';
-    await window.guardAPI.saveGitHubToken('');
-    await checkGitHubAuth();
-  });
+  
+  const btnOAuth = document.getElementById('btnOAuthBrowser');
+  if (btnOAuth) {
+    btnOAuth.addEventListener('click', async () => {
+      const feedback = document.getElementById('ghFeedbackMsg');
+      feedback.textContent = 'Authenticating with GitHub in browser...';
+      try {
+        const res = await window.guardAPI.loginGitHubBrowser();
+        if (res.success) {
+          feedback.textContent = '✓ Successfully connected @' + (res.user.login || 'GitHub');
+          await checkGitHubAuth();
+          await loadSavedAccountsInSettings();
+          await renderAccountsView();
+        } else {
+          feedback.textContent = 'OAuth Error: ' + res.error;
+        }
+      } catch (err) {
+        feedback.textContent = 'OAuth Failed: ' + err.message;
+      }
+      setTimeout(() => feedback.textContent = '', 5000);
+    });
+  }
+
+const btnResyncCli = document.getElementById('btnResyncGhCli');
+  if (btnResyncCli) {
+    btnResyncCli.addEventListener('click', async () => {
+      const tokInput = document.getElementById('cfgGhToken');
+      if (tokInput) tokInput.value = '';
+      await window.guardAPI.reconnectGitHubCli();
+      await checkGitHubAuth();
+      await loadSavedAccountsInSettings();
+      await renderAccountsView();
+    });
+  }
 
   // Load More Repos button
   const btnLoadMore = document.getElementById('btnLoadMoreRepos');
@@ -925,13 +1786,12 @@ function initEventListeners() {
     btnLoadMore.addEventListener('click', loadMoreGitHubRepos);
   }
 
-  // Sync GitHub Repos button (details section)
+  // Sync GitHub Repos button (details section) - Syncs changes with live server
   const btnSync = document.getElementById('btnSyncCloudData');
   if (btnSync) {
-    btnSync.addEventListener('click', async () => {
-      btnSync.textContent = 'Syncing...';
-      await loadGitHubRepos();
-      btnSync.textContent = 'Sync GitHub Repos';
+    btnSync.addEventListener('click', async (e) => {
+      const forceFull = Boolean(e.shiftKey);
+      await syncReposWithLiveServer({ silent: false, forceFull });
     });
   }
 
@@ -979,8 +1839,9 @@ function initEventListeners() {
   const btnDisconnectAll = document.getElementById('btnDisconnectAll');
   if (btnDisconnectAll) {
     btnDisconnectAll.addEventListener('click', async () => {
-      if (!confirm('Disconnect all GitHub accounts? This removes all stored tokens.')) return;
+      if (!confirm('Disconnect all GitHub accounts? This removes all stored tokens and clears the app session.')) return;
       await window.guardAPI.disconnectGitHub();
+      clearAppSession();
       await checkGitHubAuth();
       await loadSavedAccountsInSettings();
       await renderAccountsView();
@@ -1044,9 +1905,20 @@ function initEventListeners() {
   const acctDisconnectBtn = document.getElementById('acctDisconnectBtn');
   if (acctDisconnectBtn) {
     acctDisconnectBtn.addEventListener('click', async () => {
-      if (!appState.activeGitHubLogin) return;
-      if (!confirm(`Remove @${appState.activeGitHubLogin} from Security Guard?`)) return;
-      await window.guardAPI.removeGitHubAccount(appState.activeGitHubLogin);
+      const targetLogin = appState.activeGitHubLogin || (appState.githubAuth && appState.githubAuth.user ? appState.githubAuth.user.login : null);
+      const promptMsg = targetLogin ? `Disconnect @${targetLogin} from Security Guard?` : 'Disconnect active GitHub session?';
+      if (!confirm(promptMsg)) return;
+
+      try {
+        if (targetLogin) {
+          await window.guardAPI.removeGitHubAccount(targetLogin);
+        }
+        await window.guardAPI.disconnectGitHub();
+      } catch (err) {
+        console.error('Disconnect error:', err);
+      }
+
+      clearAppSession();
       await checkGitHubAuth();
       await loadSavedAccountsInSettings();
       await renderAccountsView();
@@ -1218,3 +2090,12 @@ function renderAiMarkdown(markdown) {
 
   container.innerHTML = html;
 }
+
+
+  // Handle tab navigation requests from notifications
+  if (window.guardAPI && window.guardAPI.onNavigateToTab) {
+    window.guardAPI.onNavigateToTab((tabName) => {
+      const tabBtn = document.querySelector(`.dock-item[data-tab="${tabName}"]`);
+      if (tabBtn) tabBtn.click();
+    });
+  }

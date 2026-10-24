@@ -1,12 +1,16 @@
 {
-  "name": "guard-desktop",
+  "name": "security-guard",
   "version": "1.0.0",
   "description": "Security Guard Desktop - Supply-chain, Malware & Host Threat Defense Center with GitHub Auth & AI Analysis",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "postinstall": "node -e \"const fs=require('fs'); const p='node_modules/boolean/package.json'; if(fs.existsSync(p)){ const j=JSON.parse(fs.readFileSync(p,'utf8')); if(j.devDependencies&&j.devDependencies.roboter){ delete j.devDependencies.roboter; fs.writeFileSync(p,JSON.stringify(j,null,2)); } }\""
+    "postinstall": "node -e",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
   },
   "keywords": [
     "security",
@@ -15,10 +19,94 @@
     "github",
     "electron"
   ],
-  "author": "Security Guard Team",
+  "author": {
+    "name": "Security Guard Team",
+    "email": "support@securityguard.local"
+  },
   "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
-    "electron": "^41.7.1"
-  }
+    "electron": "^41.7.1",
+    "electron-builder": "^26.18.0"
+  },
+  "productName": "Security Guard",
+  "build": {
+    "appId": "com.securityguard.defensehub",
+    "productName": "Security Guard",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*",
+      "renderer/**/*",
+      "package.json",
+      "guard.sh"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Security",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "maintainer": "Security Guard Team <support@securityguard.local>",
+      "syncDesktopName": true
+    }
+  },
+  "desktopName": "security-guard"
 }
