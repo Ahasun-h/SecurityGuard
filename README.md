@@ -53,6 +53,15 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 >    ```
 >    *(Or **Right-Click** `Security Guard.app` in Applications → click **Open** → click **Open**).*
 
+> [!TIP]
+> **Windows Users — Microsoft Defender SmartScreen ("Windows protected your PC")**:  
+> Because Security Guard is a free open-source community tool without an expensive commercial EV certificate, Windows SmartScreen displays a warning upon first download.  
+> **How to Install on Windows:**
+> 1. In the blue/red SmartScreen dialog, click **More info** (if not already clicked).
+> 2. Click **Run anyway** to launch the installer.  
+> 
+> *(Or Right-click `Security.Guard.Setup.1.0.0.exe` → **Properties** → check **Unblock** at the bottom → click **OK**).*
+
 ### ✨ Zero Configuration Required (Fully Automated)
 
 > **No terminal commands required.**  

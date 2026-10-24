@@ -2044,65 +2044,82 @@ function detectAvailableDisks() {
       }
     } catch (_) {}
   } else if (platform === 'win32') {
-    // Windows logical drives via PowerShell or drive letters
-    let psSuccess = false;
-    try {
-      const psCmd = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName,FileSystem,Size,FreeSpace,DriveType | ConvertTo-Json -Compress"';
-      const out = execSync(psCmd, { encoding: 'utf8', timeout: 6000, stdio: ['pipe', 'pipe', 'ignore'] }).trim();
-      if (out) {
-        let items = JSON.parse(out);
-        if (!Array.isArray(items)) items = [items];
-        for (const item of items) {
-          if (!item || !item.DeviceID) continue;
-          const driveLetter = item.DeviceID.endsWith('\\') ? item.DeviceID : item.DeviceID + '\\';
-          const total = Number(item.Size) || 0;
-          const free = Number(item.FreeSpace) || 0;
-          const used = Math.max(0, total - free);
-          const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-          const isSystem = item.DeviceID.toUpperCase().startsWith('C:');
-          const driveTypeName = item.DriveType === 2 ? 'removable' : (item.DriveType === 4 ? 'network' : 'internal');
-          const volName = item.VolumeName ? `${item.VolumeName} (${item.DeviceID})` : (isSystem ? `Local Disk (${item.DeviceID})` : `Storage Volume (${item.DeviceID})`);
+    // Windows logical drives via wmic, PowerShell, or drive letter probing
+    const winDisks = [];
+    const sysDriveLetter = ((process.env.SystemDrive || 'C:').replace(/[^a-zA-Z]/g, '') || 'C').toUpperCase();
 
-          disks.push({
-            id: 'disk-win-' + item.DeviceID.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
-            name: volName,
-            path: driveLetter,
-            fsType: item.FileSystem || 'NTFS',
-            driveType: driveTypeName,
-            isSystem,
-            totalBytes: total,
-            freeBytes: free,
-            usedBytes: used,
-            totalFormatted: formatBytes(total),
-            freeFormatted: formatBytes(free),
-            usedFormatted: formatBytes(used),
-            usedPercent: pct,
-            isDisk: true,
-            exists: true
-          });
+    // Strategy 1: Fast wmic query (standard on all Windows versions)
+    try {
+      const wmicCmd = 'wmic logicaldisk get Caption,DriveType,FileSystem,FreeSpace,Size,VolumeName /format:csv';
+      const wmicOut = execSync(wmicCmd, { encoding: 'utf8', timeout: 4000, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+      if (wmicOut) {
+        const lines = wmicOut.split(/\r?\n/).filter(l => l.trim() && !l.toLowerCase().startsWith('node'));
+        for (const line of lines) {
+          const parts = line.split(',');
+          // format: Node,Caption,DriveType,FileSystem,FreeSpace,Size,VolumeName
+          if (parts.length >= 6) {
+            const caption = (parts[1] || '').trim(); // e.g. "C:"
+            if (/^[A-Za-z]:$/.test(caption)) {
+              const driveType = parseInt(parts[2], 10) || 3;
+              const fsType = (parts[3] || 'NTFS').trim();
+              const free = Number(parts[4]) || 0;
+              const total = Number(parts[5]) || 0;
+              const volName = (parts[6] || '').trim();
+              const drivePath = caption + '\\';
+              const used = Math.max(0, total - free);
+              const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+              const isSystem = caption.toUpperCase().startsWith(sysDriveLetter);
+              const driveTypeName = driveType === 2 ? 'removable' : (driveType === 4 ? 'network' : 'internal');
+              const displayName = volName ? `${volName} (${caption})` : (isSystem ? `Local Disk (${caption}) [System]` : `Storage Drive (${caption})`);
+
+              winDisks.push({
+                id: 'disk-win-' + caption.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+                name: displayName,
+                path: drivePath,
+                fsType,
+                driveType: driveTypeName,
+                isSystem,
+                totalBytes: total,
+                freeBytes: free,
+                usedBytes: used,
+                totalFormatted: formatBytes(total),
+                freeFormatted: formatBytes(free),
+                usedFormatted: formatBytes(used),
+                usedPercent: pct,
+                isDisk: true,
+                exists: true
+              });
+            }
+          }
         }
-        if (disks.length > 0) psSuccess = true;
       }
     } catch (_) {}
 
-    if (!psSuccess) {
-      const letters = 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-      for (const l of letters) {
-        const drivePath = `${l}:\\`;
-        try {
-          if (fs.existsSync(drivePath)) {
-            const stat = fs.statfsSync(drivePath);
-            const total = Number(stat.blocks) * Number(stat.bsize);
-            const free = Number(stat.bavail) * Number(stat.bsize);
+    // Strategy 2: PowerShell CIM query if wmic didn't return drives
+    if (winDisks.length === 0) {
+      try {
+        const psCmd = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName,FileSystem,Size,FreeSpace,DriveType | ConvertTo-Json -Compress"';
+        const out = execSync(psCmd, { encoding: 'utf8', timeout: 5000, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+        if (out) {
+          let items = JSON.parse(out);
+          if (!Array.isArray(items)) items = [items];
+          for (const item of items) {
+            if (!item || !item.DeviceID) continue;
+            const driveLetter = item.DeviceID.endsWith('\\') ? item.DeviceID : item.DeviceID + '\\';
+            const total = Number(item.Size) || 0;
+            const free = Number(item.FreeSpace) || 0;
             const used = Math.max(0, total - free);
             const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-            const isSystem = l === 'C';
-            disks.push({
-              id: `disk-win-${l.toLowerCase()}`,
-              name: isSystem ? `Local Disk (${l}:)` : `Drive (${l}:)`,
-              path: drivePath,
-              fsType: 'NTFS',
-              driveType: 'internal',
+            const isSystem = item.DeviceID.toUpperCase().startsWith(sysDriveLetter);
+            const driveTypeName = item.DriveType === 2 ? 'removable' : (item.DriveType === 4 ? 'network' : 'internal');
+            const volName = item.VolumeName ? `${item.VolumeName} (${item.DeviceID})` : (isSystem ? `Local Disk (${item.DeviceID}) [System]` : `Storage Volume (${item.DeviceID})`);
+
+            winDisks.push({
+              id: 'disk-win-' + item.DeviceID.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+              name: volName,
+              path: driveLetter,
+              fsType: item.FileSystem || 'NTFS',
+              driveType: driveTypeName,
               isSystem,
               totalBytes: total,
               freeBytes: free,
@@ -2115,9 +2132,81 @@ function detectAvailableDisks() {
               exists: true
             });
           }
+        }
+      } catch (_) {}
+    }
+
+    // Strategy 3: Enumerate Drive letters A-Z via fs.existsSync with isolated statfs
+    if (winDisks.length === 0) {
+      const letters = 'CDEFGHIJKLMNOPQRSTUVWXYZAB'.split('');
+      for (const l of letters) {
+        const drivePath = `${l}:\\`;
+        try {
+          if (fs.existsSync(drivePath)) {
+            let total = 0, free = 0, used = 0, pct = 0;
+            try {
+              const stat = fs.statfsSync(drivePath);
+              total = Number(stat.blocks) * Number(stat.bsize);
+              free = Number(stat.bavail) * Number(stat.bsize);
+              used = Math.max(0, total - free);
+              pct = total > 0 ? Math.round((used / total) * 100) : 0;
+            } catch (_) {}
+
+            const isSystem = l.toUpperCase() === sysDriveLetter;
+            winDisks.push({
+              id: `disk-win-${l.toLowerCase()}`,
+              name: isSystem ? `Local Disk (${l}:) [System]` : `Drive (${l}:)`,
+              path: drivePath,
+              fsType: 'NTFS',
+              driveType: 'internal',
+              isSystem,
+              totalBytes: total,
+              freeBytes: free,
+              usedBytes: used,
+              totalFormatted: total > 0 ? formatBytes(total) : 'Local Storage',
+              freeFormatted: free > 0 ? formatBytes(free) : 'Active',
+              usedFormatted: used > 0 ? formatBytes(used) : '0 B',
+              usedPercent: pct,
+              isDisk: true,
+              exists: true
+            });
+          }
         } catch (_) {}
       }
     }
+
+    // Fallback guarantee: At minimum ensure System Drive is listed
+    if (winDisks.length === 0) {
+      const sysPath = `${sysDriveLetter}:\\`;
+      let total = 0, free = 0, used = 0, pct = 0;
+      try {
+        const stat = fs.statfsSync(sysPath);
+        total = Number(stat.blocks) * Number(stat.bsize);
+        free = Number(stat.bavail) * Number(stat.bsize);
+        used = Math.max(0, total - free);
+        pct = total > 0 ? Math.round((used / total) * 100) : 0;
+      } catch (_) {}
+
+      winDisks.push({
+        id: `disk-win-${sysDriveLetter.toLowerCase()}`,
+        name: `Local Disk (${sysDriveLetter}:) [System]`,
+        path: sysPath,
+        fsType: 'NTFS',
+        driveType: 'internal',
+        isSystem: true,
+        totalBytes: total,
+        freeBytes: free,
+        usedBytes: used,
+        totalFormatted: total > 0 ? formatBytes(total) : 'System Storage',
+        freeFormatted: free > 0 ? formatBytes(free) : 'Active',
+        usedFormatted: used > 0 ? formatBytes(used) : '0 B',
+        usedPercent: pct,
+        isDisk: true,
+        exists: true
+      });
+    }
+
+    disks.push(...winDisks);
   } else if (platform === 'linux') {
     // Linux filesystem partitions
     try {
