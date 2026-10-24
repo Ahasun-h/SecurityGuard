@@ -33,16 +33,16 @@
 
 Pre-built binaries and official packages for macOS, Windows, Linux, and Web. Choose the package for your platform:
 
-| Platform | Package Format | Architecture | Download Link / Quick Command |
+| Platform | Package Format | Architecture | Direct Download Link |
 | :--- | :--- | :--- | :--- |
-| 🍏 **macOS** | **`.dmg` Installer** *(Recommended)* | Apple Silicon (M1/M2/M3/M4) | [**Download `.dmg` (arm64)**](dist/Security%20Guard-1.0.0-arm64.dmg) |
-| 🍏 **macOS** | **`.dmg` Installer** | Intel (x64) | [**Download `.dmg` (x64)**](dist/Security%20Guard-1.0.0.dmg) |
-| 🍏 **macOS** | **`.zip` Standalone** | Universal | [**Download `.zip` (arm64)**](dist/Security%20Guard-1.0.0-arm64-mac.zip) • [**`.zip` (x64)**](dist/Security%20Guard-1.0.0-mac.zip) |
-| 🪟 **Windows** | **`.exe` Setup (NSIS)** | 64-bit (x64) | [**Download Setup `.exe`**](dist/Security%20Guard%20Setup%201.0.0.exe) |
-| 🪟 **Windows** | **Portable `.exe`** | 64-bit (x64) | [**Download Portable `.exe`**](dist/Security%20Guard%201.0.0.exe) |
-| 🐧 **Linux** | **`.AppImage`** *(All Distros)* | 64-bit (x64) | [**Download `.AppImage`**](dist/Security%20Guard-1.0.0.AppImage) |
-| 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](dist/security-guard_1.0.0_amd64.deb) |
-| 🌐 **Web / PWA** | **Self-Hosted Web App & PWA** | Any Browser / OS | [**Launch Web App (`dist/web`)**](dist/web) • `npm run serve:web` |
+| 🍏 **macOS** | **`.dmg` Installer** *(Recommended)* | Apple Silicon (M1/M2/M3/M4) | [**Download `.dmg` (arm64)**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard-1.0.0-arm64.dmg) |
+| 🍏 **macOS** | **`.dmg` Installer** | Intel (x64) | [**Download `.dmg` (x64)**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard-1.0.0.dmg) |
+| 🍏 **macOS** | **`.zip` Standalone** | Universal | [**Download `.zip` (arm64)**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard-1.0.0-arm64-mac.zip) • [**`.zip` (x64)**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard-1.0.0-mac.zip) |
+| 🪟 **Windows** | **`.exe` Setup (NSIS)** | 64-bit (x64) | [**Download Setup `.exe`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard%20Setup%201.0.0.exe) |
+| 🪟 **Windows** | **Portable `.exe`** | 64-bit (x64) | [**Download Portable `.exe`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard%201.0.0.exe) |
+| 🐧 **Linux** | **`.AppImage`** *(All Distros)* | 64-bit (x64) | [**Download `.AppImage`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard-1.0.0.AppImage) |
+| 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/security-guard_1.0.0_amd64.deb) |
+| 🌐 **Web App** | **Live Online Browser & PWA** | Any Browser / OS | [**🚀 Open Web App Online**](https://ahasun-h.github.io/SecurityGuard/) |
 
 ### ✨ Zero Configuration Required (Fully Automated)
 
