@@ -43,6 +43,16 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 | 🐧 **Linux** | **`.AppImage`** *(All Distros)* | 64-bit (x64) | [**Download `.AppImage`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard-1.0.0.AppImage) |
 | 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/security-guard_1.0.0_amd64.deb) |
 
+> [!NOTE]
+> **🍏 macOS Installation Note:**  
+> Because Security Guard is distributed as an open-source binary outside the Mac App Store, macOS Gatekeeper may show *"Security Guard is damaged and can't be opened"*.  
+> 1. Drag **`Security Guard`** into your **`Applications`** folder.  
+> 2. Open Terminal and run:  
+>    ```bash
+>    xattr -cr "/Applications/Security Guard.app"
+>    ```
+>    *(Or **Right-Click** `Security Guard.app` in Applications → click **Open** → click **Open**).*
+
 ### ✨ Zero Configuration Required (Fully Automated)
 
 > **No terminal commands required.**  
