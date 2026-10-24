@@ -28,8 +28,9 @@
     "electron"
   ],
   "author": {
-    "name": "Security Guard Team",
-    "email": "support@securityguard.local"
+    "name": "Ahasun Habib",
+    "email": "habibahasun019@gmail.com",
+    "url": "https://github.com/Ahasun-h"
   },
   "license": "MIT",
   "devDependencies": {

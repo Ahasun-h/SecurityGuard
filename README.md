@@ -183,6 +183,6 @@ The native `guard` command-line engine powers the underlying static analysis:
 
 ---
 
-## 📄 License
+## 📄 License & Copyright
 
-This project is licensed under the [MIT License](LICENSE).
+Copyright © 2026 **Ahasun Habib**. Licensed under the [MIT License](LICENSE).
