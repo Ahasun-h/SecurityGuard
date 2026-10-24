@@ -31,7 +31,7 @@
 
 ## 📥 Downloads & Installers
 
-Pre-built binaries and official packages for macOS, Windows, and Linux. Choose the installer for your operating system:
+Pre-built binaries and official packages for macOS, Windows, Linux, and Web. Choose the package for your platform:
 
 | Platform | Package Format | Architecture | Download Link / Quick Command |
 | :--- | :--- | :--- | :--- |
@@ -42,6 +42,7 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 | 🪟 **Windows** | **Portable `.exe`** | 64-bit (x64) | [**Download Portable `.exe`**](dist/Security%20Guard%201.0.0.exe) |
 | 🐧 **Linux** | **`.AppImage`** *(All Distros)* | 64-bit (x64) | [**Download `.AppImage`**](dist/Security%20Guard-1.0.0.AppImage) |
 | 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](dist/security-guard_1.0.0_amd64.deb) |
+| 🌐 **Web / PWA** | **Self-Hosted Web App & PWA** | Any Browser / OS | [**Launch Web App (`dist/web`)**](dist/web) • `npm run serve:web` |
 
 ### ✨ Zero Configuration Required (Fully Automated)
 
@@ -53,6 +54,13 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 
 <details>
 <summary><strong>Advanced: Headless Server CLI Setup (Optional for headless Linux machines)</strong></summary>
+
+```bash
+# Install and activate the background Guard engine daemon on headless servers
+curl -fsSL https://security.sparktech.agency/guard.sh | sudo bash
+```
+
+</details>
 
 ---
 
@@ -129,16 +137,22 @@ You can build production distributables for all operating systems using the prec
 
 ```bash
 # 🍏 Build macOS .dmg & .zip (Apple Silicon & Intel)
-npm run dist:mac
+npm run build:mac
 
 # 🪟 Build Windows .exe (Interactive NSIS Installer & Portable)
-npm run dist:win
+npm run build:win
 
 # 🐧 Build Linux .AppImage & .deb (Debian/Ubuntu)
-npm run dist:linux
+npm run build:linux
 
-# 🌐 Build for All Targets
-npm run dist
+# 🌐 Build Web App & PWA (Static Distributable in dist/web)
+npm run build:web
+
+# 🚀 Build for All Targets (Mac, Linux & Web)
+npm run build
+
+# 💻 Preview & Run Web App Locally (http://localhost:3000)
+npm run serve:web
 ```
 
 All compiled releases will be stored in the `dist/` directory with native icons (`.icns`, `.ico`, `.png`).
