@@ -31,7 +31,7 @@
 
 ## 📥 Downloads & Installers
 
-Pre-built binaries and official packages for macOS, Windows, Linux, and Web. Choose the package for your platform:
+Pre-built binaries and official packages for macOS, Windows, and Linux. Choose the installer for your operating system:
 
 | Platform | Package Format | Architecture | Direct Download Link |
 | :--- | :--- | :--- | :--- |
@@ -42,7 +42,6 @@ Pre-built binaries and official packages for macOS, Windows, Linux, and Web. Cho
 | 🪟 **Windows** | **Portable `.exe`** | 64-bit (x64) | [**Download Portable `.exe`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard%201.0.0.exe) |
 | 🐧 **Linux** | **`.AppImage`** *(All Distros)* | 64-bit (x64) | [**Download `.AppImage`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security%20Guard-1.0.0.AppImage) |
 | 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/security-guard_1.0.0_amd64.deb) |
-| 🌐 **Web App** | **Live Online Browser & PWA** | Any Browser / OS | [**🚀 Open Web App Online**](https://ahasun-h.github.io/SecurityGuard/) |
 
 ### ✨ Zero Configuration Required (Fully Automated)
 
@@ -145,14 +144,8 @@ npm run build:win
 # 🐧 Build Linux .AppImage & .deb (Debian/Ubuntu)
 npm run build:linux
 
-# 🌐 Build Web App & PWA (Static Distributable in dist/web)
-npm run build:web
-
-# 🚀 Build for All Targets (Mac, Linux & Web)
+# 🚀 Build for All Targets (Mac, Windows & Linux)
 npm run build
-
-# 💻 Preview & Run Web App Locally (http://localhost:3000)
-npm run serve:web
 ```
 
 All compiled releases will be stored in the `dist/` directory with native icons (`.icns`, `.ico`, `.png`).

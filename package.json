@@ -5,20 +5,16 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "npm run build:mac && npm run build:linux && npm run build:web",
-    "build:all": "npm run build:mac && npm run build:linux && npm run build:web",
+    "build": "npm run build:mac && npm run build:win && npm run build:linux",
+    "build:all": "npm run build:mac && npm run build:win && npm run build:linux",
     "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
     "build:win": "electron-builder --win",
-    "build:web": "node scripts/build-web.js",
+    "build:linux": "electron-builder --linux",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux",
-    "dist:web": "node scripts/build-web.js",
-    "serve:web": "node scripts/serve-web.js",
-    "web": "node scripts/serve-web.js"
+    "dist:linux": "electron-builder --linux"
   },
   "keywords": [
     "security",
