@@ -235,31 +235,48 @@ const IGNORED_SCAN_DIRS = new Set([
   '.husky',
   '.idea',
   '.svn',
-  '.hg'
+  '.hg',
+  'dev',
+  'proc',
+  'sys',
+  'System',
+  '.Spotlight-V100',
+  '.fseventsd',
+  '.Trashes',
+  '.DocumentRevisions-V100',
+  '$Recycle.Bin',
+  '$RECYCLE.BIN',
+  'System Volume Information',
+  'Volumes',
+  'private'
 ]);
 
 // Helper: Single-pass recursive collector for files needing inspection
-function collectFilesForScan(dir, maxDepth = 15, currentDepth = 0) {
+function collectFilesForScan(dir, maxDepth = 10, currentDepth = 0, state = { count: 0, maxFiles: 15000 }) {
   const result = {
     pkgFiles: [],
     dropperFiles: [],
     sourceFiles: []
   };
 
-  if (currentDepth > maxDepth) return result;
+  if (currentDepth > maxDepth || (state && state.count >= state.maxFiles)) return result;
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
+      if (state && state.count >= state.maxFiles) break;
       if (IGNORED_SCAN_DIRS.has(entry.name)) continue;
+      if (entry.isSymbolicLink && entry.isSymbolicLink()) continue;
+
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
-        const sub = collectFilesForScan(fullPath, maxDepth, currentDepth + 1);
+        const sub = collectFilesForScan(fullPath, maxDepth, currentDepth + 1, state);
         result.pkgFiles.push(...sub.pkgFiles);
         result.dropperFiles.push(...sub.dropperFiles);
         result.sourceFiles.push(...sub.sourceFiles);
       } else if (entry.isFile()) {
+        if (state) state.count++;
         const base = entry.name.toLowerCase();
         if (base === 'package.json') {
           result.pkgFiles.push(fullPath);
@@ -1927,13 +1944,274 @@ ipcMain.handle('system:run-background-pc-scan', async () => {
   return await executeBackgroundPcScan();
 });
 
+function formatBytes(bytes) {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+}
+
+function detectAvailableDisks() {
+  const disks = [];
+  const platform = process.platform;
+
+  if (platform === 'darwin') {
+    // 1. Primary macOS System Drive (Macintosh HD mounted at /)
+    try {
+      const stat = fs.statfsSync('/');
+      const total = Number(stat.blocks) * Number(stat.bsize);
+      const free = Number(stat.bavail) * Number(stat.bsize);
+      const used = Math.max(0, total - free);
+      const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+
+      let rootName = 'Macintosh HD';
+      try {
+        if (fs.existsSync('/Volumes')) {
+          for (const item of fs.readdirSync('/Volumes')) {
+            const p = path.join('/Volumes', item);
+            try {
+              if (fs.lstatSync(p).isSymbolicLink()) {
+                const link = fs.readlinkSync(p);
+                if (link === '/' || link === '') {
+                  rootName = item;
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+
+      disks.push({
+        id: 'disk-mac-root',
+        name: rootName,
+        path: '/',
+        fsType: 'APFS',
+        driveType: 'internal',
+        isSystem: true,
+        totalBytes: total,
+        freeBytes: free,
+        usedBytes: used,
+        totalFormatted: formatBytes(total),
+        freeFormatted: formatBytes(free),
+        usedFormatted: formatBytes(used),
+        usedPercent: pct,
+        isDisk: true,
+        exists: true
+      });
+    } catch (e) {
+      console.error('Error detecting root disk:', e);
+    }
+
+    // 2. Mounted Volumes in /Volumes (External USB, SSDs, HDDs, Disk Images)
+    try {
+      if (fs.existsSync('/Volumes')) {
+        for (const item of fs.readdirSync('/Volumes')) {
+          const volPath = path.join('/Volumes', item);
+          try {
+            const lstat = fs.lstatSync(volPath);
+            if (lstat.isSymbolicLink()) {
+              const link = fs.readlinkSync(volPath);
+              if (link === '/' || link === '') continue; // Already added as root
+            }
+            const stat = fs.statfsSync(volPath);
+            const total = Number(stat.blocks) * Number(stat.bsize);
+            const free = Number(stat.bavail) * Number(stat.bsize);
+            const used = Math.max(0, total - free);
+            const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+
+            if (total > 0) {
+              disks.push({
+                id: 'disk-vol-' + item.toLowerCase().replace(/[^a-z0-9_-]/g, '_'),
+                name: item,
+                path: volPath,
+                fsType: 'Mounted Volume',
+                driveType: 'removable',
+                isSystem: false,
+                totalBytes: total,
+                freeBytes: free,
+                usedBytes: used,
+                totalFormatted: formatBytes(total),
+                freeFormatted: formatBytes(free),
+                usedFormatted: formatBytes(used),
+                usedPercent: pct,
+                isDisk: true,
+                exists: true
+              });
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  } else if (platform === 'win32') {
+    // Windows logical drives via PowerShell or drive letters
+    let psSuccess = false;
+    try {
+      const psCmd = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName,FileSystem,Size,FreeSpace,DriveType | ConvertTo-Json -Compress"';
+      const out = execSync(psCmd, { encoding: 'utf8', timeout: 6000, stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+      if (out) {
+        let items = JSON.parse(out);
+        if (!Array.isArray(items)) items = [items];
+        for (const item of items) {
+          if (!item || !item.DeviceID) continue;
+          const driveLetter = item.DeviceID.endsWith('\\') ? item.DeviceID : item.DeviceID + '\\';
+          const total = Number(item.Size) || 0;
+          const free = Number(item.FreeSpace) || 0;
+          const used = Math.max(0, total - free);
+          const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+          const isSystem = item.DeviceID.toUpperCase().startsWith('C:');
+          const driveTypeName = item.DriveType === 2 ? 'removable' : (item.DriveType === 4 ? 'network' : 'internal');
+          const volName = item.VolumeName ? `${item.VolumeName} (${item.DeviceID})` : (isSystem ? `Local Disk (${item.DeviceID})` : `Storage Volume (${item.DeviceID})`);
+
+          disks.push({
+            id: 'disk-win-' + item.DeviceID.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+            name: volName,
+            path: driveLetter,
+            fsType: item.FileSystem || 'NTFS',
+            driveType: driveTypeName,
+            isSystem,
+            totalBytes: total,
+            freeBytes: free,
+            usedBytes: used,
+            totalFormatted: formatBytes(total),
+            freeFormatted: formatBytes(free),
+            usedFormatted: formatBytes(used),
+            usedPercent: pct,
+            isDisk: true,
+            exists: true
+          });
+        }
+        if (disks.length > 0) psSuccess = true;
+      }
+    } catch (_) {}
+
+    if (!psSuccess) {
+      const letters = 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      for (const l of letters) {
+        const drivePath = `${l}:\\`;
+        try {
+          if (fs.existsSync(drivePath)) {
+            const stat = fs.statfsSync(drivePath);
+            const total = Number(stat.blocks) * Number(stat.bsize);
+            const free = Number(stat.bavail) * Number(stat.bsize);
+            const used = Math.max(0, total - free);
+            const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+            const isSystem = l === 'C';
+            disks.push({
+              id: `disk-win-${l.toLowerCase()}`,
+              name: isSystem ? `Local Disk (${l}:)` : `Drive (${l}:)`,
+              path: drivePath,
+              fsType: 'NTFS',
+              driveType: 'internal',
+              isSystem,
+              totalBytes: total,
+              freeBytes: free,
+              usedBytes: used,
+              totalFormatted: formatBytes(total),
+              freeFormatted: formatBytes(free),
+              usedFormatted: formatBytes(used),
+              usedPercent: pct,
+              isDisk: true,
+              exists: true
+            });
+          }
+        } catch (_) {}
+      }
+    }
+  } else if (platform === 'linux') {
+    // Linux filesystem partitions
+    try {
+      const stat = fs.statfsSync('/');
+      const total = Number(stat.blocks) * Number(stat.bsize);
+      const free = Number(stat.bavail) * Number(stat.bsize);
+      const used = Math.max(0, total - free);
+      const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+      disks.push({
+        id: 'disk-linux-root',
+        name: 'Root Filesystem (/)',
+        path: '/',
+        fsType: 'ext4/btrfs',
+        driveType: 'internal',
+        isSystem: true,
+        totalBytes: total,
+        freeBytes: free,
+        usedBytes: used,
+        totalFormatted: formatBytes(total),
+        freeFormatted: formatBytes(free),
+        usedFormatted: formatBytes(used),
+        usedPercent: pct,
+        isDisk: true,
+        exists: true
+      });
+    } catch (_) {}
+
+    try {
+      if (fs.existsSync('/proc/mounts')) {
+        const mounts = fs.readFileSync('/proc/mounts', 'utf8').split('\n');
+        const seenPaths = new Set(['/']);
+        for (const line of mounts) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 3) {
+            const dev = parts[0];
+            const mountPoint = parts[1];
+            const fsType = parts[2];
+            if (
+              (dev.startsWith('/dev/') && !dev.includes('loop')) ||
+              mountPoint.startsWith('/media') ||
+              mountPoint.startsWith('/mnt') ||
+              mountPoint.startsWith('/run/media')
+            ) {
+              if (seenPaths.has(mountPoint)) continue;
+              seenPaths.add(mountPoint);
+              try {
+                const stat = fs.statfsSync(mountPoint);
+                const total = Number(stat.blocks) * Number(stat.bsize);
+                const free = Number(stat.bavail) * Number(stat.bsize);
+                const used = Math.max(0, total - free);
+                const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+                if (total > 0) {
+                  const baseName = path.basename(mountPoint) || mountPoint;
+                  disks.push({
+                    id: 'disk-linux-' + mountPoint.replace(/[^a-zA-Z0-9_-]/g, '_'),
+                    name: `${baseName} (${mountPoint})`,
+                    path: mountPoint,
+                    fsType,
+                    driveType: mountPoint.startsWith('/media') || mountPoint.startsWith('/run/media') ? 'removable' : 'internal',
+                    isSystem: mountPoint === '/',
+                    totalBytes: total,
+                    freeBytes: free,
+                    usedBytes: used,
+                    totalFormatted: formatBytes(total),
+                    freeFormatted: formatBytes(free),
+                    usedFormatted: formatBytes(used),
+                    usedPercent: pct,
+                    isDisk: true,
+                    exists: true
+                  });
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  return disks;
+}
+
+ipcMain.handle('system:get-available-disks', async () => {
+  return detectAvailableDisks();
+});
+
 ipcMain.handle('system:get-local-targets', async () => {
+  const disks = detectAvailableDisks();
   const home = os.homedir();
   const presets = [
-    { id: 'desktop', name: 'Desktop', path: path.join(home, 'Desktop'), exists: fs.existsSync(path.join(home, 'Desktop')) },
-    { id: 'downloads', name: 'Downloads', path: path.join(home, 'Downloads'), exists: fs.existsSync(path.join(home, 'Downloads')) },
-    { id: 'documents', name: 'Documents', path: path.join(home, 'Documents'), exists: fs.existsSync(path.join(home, 'Documents')) },
-    { id: 'home', name: 'Home Directory (~)', path: home, exists: true }
+    { id: 'desktop', name: 'Desktop', path: path.join(home, 'Desktop'), exists: fs.existsSync(path.join(home, 'Desktop')), isDisk: false },
+    { id: 'downloads', name: 'Downloads', path: path.join(home, 'Downloads'), exists: fs.existsSync(path.join(home, 'Downloads')), isDisk: false },
+    { id: 'documents', name: 'Documents', path: path.join(home, 'Documents'), exists: fs.existsSync(path.join(home, 'Documents')), isDisk: false },
+    { id: 'home', name: 'Home Directory (~)', path: home, exists: true, isDisk: false }
   ];
 
   // Also check common developer folders
@@ -1946,11 +2224,11 @@ ipcMain.handle('system:get-local-targets', async () => {
 
   devPaths.forEach(dp => {
     if (fs.existsSync(dp)) {
-      presets.push({ id: path.basename(dp).toLowerCase(), name: path.basename(dp), path: dp, exists: true });
+      presets.push({ id: path.basename(dp).toLowerCase(), name: path.basename(dp), path: dp, exists: true, isDisk: false });
     }
   });
 
-  return presets;
+  return [...disks, ...presets];
 });
 
 // 8. Start Security Scan (GitHub Repos + Local PC)

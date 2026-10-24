@@ -1131,6 +1131,167 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
+/* Mounted Disks & Storage Drives Grid */
+.disks-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.disk-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.disk-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.disk-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.disk-card-info-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.disk-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.disk-avatar-sys {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.disk-avatar-usb {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.disk-title {
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.disk-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.disk-tag-system {
+  background: #eef7f2;
+  color: #1e7e51;
+}
+
+.disk-tag-usb {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.disk-tag-fs {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.disk-path-line {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disk-path-line code {
+  font-family: var(--font-mono);
+  background: #f8fafc;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.disk-meter-container {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 9px 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.disk-meter-track {
+  height: 7px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.disk-meter-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.fill-safe {
+  background: #10b981;
+}
+
+.fill-warn {
+  background: #f59e0b;
+}
+
+.fill-danger {
+  background: #ef4444;
+}
+
+.disk-meter-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.disk-meter-text {
+  color: var(--text-muted);
+}
+
+.disk-meter-percent {
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.disk-meter-percent.fill-safe { color: #059669; }
+.disk-meter-percent.fill-warn { color: #d97706; }
+.disk-meter-percent.fill-danger { color: #dc2626; }
+
+
 /* Reports Bubbles */
 .report-overview-row {
   display: grid;

@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('guardAPI', {
 
   // Local System Targets
   getLocalTargets: () => ipcRenderer.invoke('system:get-local-targets'),
+  getAvailableDisks: () => ipcRenderer.invoke('system:get-available-disks'),
   selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
   verifyAppSignature: (appName) => ipcRenderer.invoke('system:verify-app-signature', appName),
   verifyVsCodeCodesign: () => ipcRenderer.invoke('system:verify-vscode-codesign'),

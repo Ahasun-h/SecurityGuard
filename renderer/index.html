@@ -270,8 +270,46 @@
               <div id="vscodeCodesignMsg" style="font-size:12px; color:var(--text-muted); line-height:1.5;"></div>
             </div>
 
-            <div class="local-targets-grid" id="localTargetsContainer">
-              <!-- Targets listed here -->
+            <!-- SECTION 1: DETECTED DISKS & STORAGE MEDIA -->
+            <div class="storage-section" style="margin-bottom: 28px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <h3 style="font-size:15px; font-weight:700; color:var(--text-main); margin:0; display:flex; align-items:center; gap:8px;">
+                    💾 Available Disks &amp; Storage Drives
+                    <span id="badgeDiskCount" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#e0f2fe; color:#0369a1;">0 Disks</span>
+                  </h3>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button class="btn-pill-outline" id="btnSelectAllDisks" style="font-size:12px; padding:6px 12px;">Select All Disks</button>
+                  <button class="btn-pill-primary" id="btnScanAllDisks" style="font-size:12px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px;">⚡ Scan Selected Disks</button>
+                  <button class="btn-pill-secondary" id="btnRefreshDisks" style="font-size:12px; padding:6px 12px;" title="Rescan and refresh all mounted volumes">🔄 Refresh Disks</button>
+                </div>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px 0;">
+                All local hard drives, internal SSDs, external USB volumes, and mounted partitions detected on your operating system. Select any storage volume to run supply-chain, malware, and rootkit audits.
+              </p>
+              <div class="disks-grid" id="disksContainer">
+                <!-- Disk cards dynamically rendered here -->
+              </div>
+            </div>
+
+            <!-- SECTION 2: WORKSTATION DIRECTORIES & REPOSITORIES -->
+            <div class="folders-section">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <h3 style="font-size:15px; font-weight:700; color:var(--text-main); margin:0; display:flex; align-items:center; gap:8px;">
+                    📁 Workstation Directories &amp; Developer Projects
+                    <span id="badgeFolderCount" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#f1f5f9; color:#475569;">0 Folders</span>
+                  </h3>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button class="btn-pill-outline" id="btnSelectAllFolders" style="font-size:12px; padding:6px 12px;">Select All Folders</button>
+                  <button class="btn-pill-secondary" id="btnBrowseCustomFolder" style="font-size:12px; padding:6px 12px;">+ Add Custom Folder / Drive</button>
+                </div>
+              </div>
+              <div class="local-targets-grid" id="localTargetsContainer">
+                <!-- Targets listed here -->
+              </div>
             </div>
           </div>
 

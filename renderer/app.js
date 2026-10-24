@@ -954,12 +954,17 @@ function updateSelectedCounts() {
   document.getElementById('selectedCountTab').textContent = appState.selectedRepoIds.size;
 }
 
-// 3. Local Target Management
+// 3. Local Target & Disk Storage Management
 async function loadLocalTargets() {
   try {
     const targets = await window.guardAPI.getLocalTargets();
     appState.localTargets = targets;
-    appState.selectedLocalPaths = new Set(targets.filter(t => t.exists).map(t => t.path));
+    
+    // Default selection: select all existing targets if empty
+    if (!appState.selectedLocalPaths || appState.selectedLocalPaths.size === 0) {
+      appState.selectedLocalPaths = new Set(targets.filter(t => t.exists).map(t => t.path));
+    }
+    
     document.getElementById('countLocal').textContent = targets.length;
     renderLocalTargetsTab();
   } catch (e) {
@@ -968,26 +973,115 @@ async function loadLocalTargets() {
 }
 
 function renderLocalTargetsTab() {
-  const container = document.getElementById('localTargetsContainer');
-  container.innerHTML = appState.localTargets.map(t => {
-    const isChecked = appState.selectedLocalPaths.has(t.path);
-    return `
-      <div class="target-card-soft">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <input type="checkbox" class="cb-local-select" data-path="${t.path}" ${isChecked ? 'checked' : ''} style="accent-color: var(--accent-yellow); width: 16px; height: 16px;">
-          <div>
-            <strong style="font-size: 14px; color: var(--text-main);">${t.name}</strong>
-            <p style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">${t.path}</p>
-          </div>
-        </div>
-        <div>
-          <button class="btn-pill-secondary btn-target-scan" data-path="${t.path}">Scan</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+  const disksContainer = document.getElementById('disksContainer');
+  const foldersContainer = document.getElementById('localTargetsContainer');
 
-  container.querySelectorAll('.cb-local-select').forEach(cb => {
+  const disks = (appState.localTargets || []).filter(t => t.isDisk);
+  const folders = (appState.localTargets || []).filter(t => !t.isDisk);
+
+  const badgeDiskCount = document.getElementById('badgeDiskCount');
+  if (badgeDiskCount) {
+    badgeDiskCount.textContent = `${disks.length} Disk${disks.length === 1 ? '' : 's'}`;
+  }
+
+  const badgeFolderCount = document.getElementById('badgeFolderCount');
+  if (badgeFolderCount) {
+    badgeFolderCount.textContent = `${folders.length} Folder${folders.length === 1 ? '' : 's'}`;
+  }
+
+  // 1. Render Disks & Storage Drives
+  if (disksContainer) {
+    if (disks.length === 0) {
+      disksContainer.innerHTML = `
+        <div style="background:#ffffff; border:1px dashed var(--border-light); border-radius:12px; padding:24px; text-align:center; color:var(--text-muted);">
+          <p style="margin:0; font-size:13px;">No physical storage disks detected. Click <strong>Refresh Disks</strong> to rescan.</p>
+        </div>
+      `;
+    } else {
+      disksContainer.innerHTML = disks.map(disk => {
+        const isChecked = appState.selectedLocalPaths.has(disk.path);
+        const fillClass = (disk.usedPercent > 90) ? 'fill-danger' : (disk.usedPercent > 70 ? 'fill-warn' : 'fill-safe');
+        const avatarType = disk.isSystem ? 'disk-avatar-sys' : (disk.driveType === 'removable' ? 'disk-avatar-usb' : '');
+        const avatarIcon = disk.isSystem ? '🖥️' : (disk.driveType === 'removable' ? '🔌' : '💾');
+
+        return `
+          <div class="disk-card" data-path="${disk.path}">
+            <div class="disk-card-top">
+              <div class="disk-card-info-group">
+                <div class="disk-avatar ${avatarType}">
+                  ${avatarIcon}
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <input type="checkbox" class="cb-target-select cb-disk-select" data-path="${disk.path}" ${isChecked ? 'checked' : ''} style="accent-color: var(--accent-yellow); width: 17px; height: 17px; cursor:pointer;">
+                    <strong class="disk-title">${disk.name}</strong>
+                    ${disk.isSystem ? '<span class="disk-tag disk-tag-system">SYSTEM BOOT</span>' : ''}
+                    ${disk.driveType === 'removable' ? '<span class="disk-tag disk-tag-usb">EXTERNAL / REMOVABLE</span>' : ''}
+                    <span class="disk-tag disk-tag-fs">${disk.fsType || 'Local Disk'}</span>
+                  </div>
+                  <div class="disk-path-line">
+                    <span>Mount Point:</span>
+                    <code>${disk.path}</code>
+                  </div>
+                </div>
+              </div>
+              <div class="disk-actions">
+                <button class="btn-pill-primary btn-disk-scan" data-path="${disk.path}" style="font-size:12px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px;">
+                  ⚡ Scan Disk
+                </button>
+              </div>
+            </div>
+            
+            <div class="disk-meter-container">
+              <div class="disk-meter-track">
+                <div class="disk-meter-fill ${fillClass}" style="width: ${Math.min(100, Math.max(2, disk.usedPercent))}%;"></div>
+              </div>
+              <div class="disk-meter-meta">
+                <span class="disk-meter-text">
+                  <strong>${disk.freeFormatted} free</strong> of ${disk.totalFormatted} (${disk.usedFormatted} used)
+                </span>
+                <span class="disk-meter-percent ${fillClass}">
+                  ${disk.usedPercent}% Used
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 2. Render Folders
+  if (foldersContainer) {
+    if (folders.length === 0) {
+      foldersContainer.innerHTML = `
+        <div style="background:#ffffff; border:1px dashed var(--border-light); border-radius:12px; padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">
+          No workstation directories added. Click <strong>+ Add Custom Folder / Drive</strong> to add one.
+        </div>
+      `;
+    } else {
+      foldersContainer.innerHTML = folders.map(f => {
+        const isChecked = appState.selectedLocalPaths.has(f.path);
+        return `
+          <div class="target-card-soft">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <input type="checkbox" class="cb-local-select cb-folder-select" data-path="${f.path}" ${isChecked ? 'checked' : ''} style="accent-color: var(--accent-yellow); width: 16px; height: 16px; cursor:pointer;">
+              <div>
+                <strong style="font-size: 14px; color: var(--text-main); display:flex; align-items:center; gap:6px;">📁 ${f.name}</strong>
+                <p style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin:2px 0 0 0;">${f.path}</p>
+              </div>
+            </div>
+            <div>
+              <button class="btn-pill-secondary btn-target-scan" data-path="${f.path}">Scan</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 3. Bind Checkbox Events
+  document.querySelectorAll('.cb-target-select, .cb-local-select').forEach(cb => {
     cb.addEventListener('change', (e) => {
       const p = e.target.dataset.path;
       if (e.target.checked) appState.selectedLocalPaths.add(p);
@@ -995,7 +1089,8 @@ function renderLocalTargetsTab() {
     });
   });
 
-  container.querySelectorAll('.btn-target-scan').forEach(btn => {
+  // 4. Bind Individual Scan Buttons
+  document.querySelectorAll('.btn-disk-scan, .btn-target-scan').forEach(btn => {
     btn.addEventListener('click', () => {
       const p = btn.dataset.path;
       startScanPipeline({ githubRepos: [], localPaths: [p], scanLocalPc: true });
@@ -1429,13 +1524,118 @@ function initEventListeners() {
   document.getElementById('heroBtnAddPath').addEventListener('click', async () => {
     const chosen = await window.guardAPI.selectDirectory();
     if (chosen) {
-      appState.localTargets.push({ id: 'custom_' + Date.now(), name: chosen.split('/').pop() || chosen, path: chosen, exists: true });
+      appState.localTargets.push({ id: 'custom_' + Date.now(), name: chosen.split('/').pop() || chosen, path: chosen, exists: true, isDisk: false });
       appState.selectedLocalPaths.add(chosen);
       document.getElementById('countLocal').textContent = appState.localTargets.length;
       renderDashboardPillCards();
       renderLocalTargetsTab();
     }
   });
+
+  // Local PC: Add Custom Folder / Drive buttons
+  const addFolderHandler = async () => {
+    const chosen = await window.guardAPI.selectDirectory();
+    if (chosen) {
+      const base = chosen.split(/[\\/]/).filter(Boolean).pop() || chosen;
+      appState.localTargets.push({ id: 'custom_' + Date.now(), name: base, path: chosen, exists: true, isDisk: false });
+      appState.selectedLocalPaths.add(chosen);
+      document.getElementById('countLocal').textContent = appState.localTargets.length;
+      renderDashboardPillCards();
+      renderLocalTargetsTab();
+    }
+  };
+
+  const btnBrowseCustom = document.getElementById('btnBrowseCustomFolder');
+  if (btnBrowseCustom) btnBrowseCustom.addEventListener('click', addFolderHandler);
+
+  const btnSelectCustomDir = document.getElementById('btnSelectCustomDir');
+  if (btnSelectCustomDir) btnSelectCustomDir.addEventListener('click', addFolderHandler);
+
+  // Local PC: Select All Disks
+  const btnSelectAllDisks = document.getElementById('btnSelectAllDisks');
+  if (btnSelectAllDisks) {
+    btnSelectAllDisks.addEventListener('click', () => {
+      const disks = (appState.localTargets || []).filter(t => t.isDisk);
+      const allSelected = disks.every(d => appState.selectedLocalPaths.has(d.path));
+      disks.forEach(d => {
+        if (allSelected) appState.selectedLocalPaths.delete(d.path);
+        else appState.selectedLocalPaths.add(d.path);
+      });
+      btnSelectAllDisks.textContent = allSelected ? 'Select All Disks' : 'Deselect All Disks';
+      renderLocalTargetsTab();
+    });
+  }
+
+  // Local PC: Scan Selected Disks
+  const btnScanAllDisks = document.getElementById('btnScanAllDisks');
+  if (btnScanAllDisks) {
+    btnScanAllDisks.addEventListener('click', () => {
+      const disks = (appState.localTargets || []).filter(t => t.isDisk);
+      let selectedDisks = disks.filter(d => appState.selectedLocalPaths.has(d.path));
+      if (selectedDisks.length === 0) {
+        // If none selected, scan all disks
+        selectedDisks = disks;
+        disks.forEach(d => appState.selectedLocalPaths.add(d.path));
+      }
+      if (selectedDisks.length === 0) {
+        alert('No mounted storage disks detected to scan.');
+        return;
+      }
+      startScanPipeline({
+        githubRepos: [],
+        localPaths: selectedDisks.map(d => d.path),
+        scanLocalPc: true
+      });
+    });
+  }
+
+  // Local PC: Refresh Disks button
+  const btnRefreshDisks = document.getElementById('btnRefreshDisks');
+  if (btnRefreshDisks) {
+    btnRefreshDisks.addEventListener('click', async () => {
+      btnRefreshDisks.disabled = true;
+      btnRefreshDisks.textContent = 'Refreshing...';
+      try {
+        await loadLocalTargets();
+      } finally {
+        btnRefreshDisks.disabled = false;
+        btnRefreshDisks.textContent = '🔄 Refresh Disks';
+      }
+    });
+  }
+
+  // Local PC: Select All Folders
+  const btnSelectAllFolders = document.getElementById('btnSelectAllFolders');
+  if (btnSelectAllFolders) {
+    btnSelectAllFolders.addEventListener('click', () => {
+      const folders = (appState.localTargets || []).filter(t => !t.isDisk);
+      const allSelected = folders.every(f => appState.selectedLocalPaths.has(f.path));
+      folders.forEach(f => {
+        if (allSelected) appState.selectedLocalPaths.delete(f.path);
+        else appState.selectedLocalPaths.add(f.path);
+      });
+      btnSelectAllFolders.textContent = allSelected ? 'Select All Folders' : 'Deselect All Folders';
+      renderLocalTargetsTab();
+    });
+  }
+
+  // Local PC: Run Local Direct PC Scan
+  const btnRunLocalDirect = document.getElementById('btnRunLocalDirect');
+  if (btnRunLocalDirect) {
+    btnRunLocalDirect.addEventListener('click', () => {
+      let paths = Array.from(appState.selectedLocalPaths);
+      if (paths.length === 0) {
+        // Fallback: select all existing targets
+        (appState.localTargets || []).forEach(t => appState.selectedLocalPaths.add(t.path));
+        paths = Array.from(appState.selectedLocalPaths);
+      }
+      startScanPipeline({
+        githubRepos: [],
+        localPaths: paths,
+        scanLocalPc: true
+      });
+    });
+  }
 
   // Filter Pills (All / Private / Public / Local)
   document.querySelectorAll('#repoFilterPills .pill-tab').forEach(tab => {
