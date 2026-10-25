@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Guard Server &bull; Cyber Defense View</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="/assets/icon.png">
+</head>
+<body>
+  <div class="container">
+    <!-- TOP NAVIGATION -->
+    <header class="navbar">
+      <div class="brand">
+        <span class="brand-icon">🛡️</span>
+        <div>
+          <span class="brand-title">Security Guard Server</span>
+          <span class="brand-badge" id="hostBadge">HOST: CONNECTING...</span>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-primary" id="btnScanNow">
+          <span>🔍</span> Scan Server Now
+        </button>
+        <button class="btn btn-secondary" id="btnEmailSettings">
+          <span>⚙️</span> Email Alerts
+        </button>
+        <button class="btn btn-secondary" id="btnRefresh">
+          <span>🔄</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- LIVE METRICS GRID -->
+    <section class="metrics-grid">
+      <!-- ACTIVE THREATS -->
+      <div class="metric-card clean" id="cardThreats">
+        <div class="metric-head">
+          <span class="metric-title">Active Threats</span>
+          <span class="metric-icon">🚨</span>
+        </div>
+        <div class="metric-val" id="valThreats">0</div>
+        <div class="metric-sub" id="subThreats">Server filesystem clean</div>
+      </div>
+
+      <!-- BACKGROUND SHIELD -->
+      <div class="metric-card clean">
+        <div class="metric-head">
+          <span class="metric-title">Malware Shield</span>
+          <span class="metric-icon">⚡</span>
+        </div>
+        <div class="metric-val" style="color:var(--accent-green);" id="valShield">ACTIVE</div>
+        <div class="metric-sub">Continuous watcher daemon</div>
+      </div>
+
+      <!-- EMAIL NOTIFICATIONS -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">Email Alerts</span>
+          <span class="metric-icon">📧</span>
+        </div>
+        <div class="metric-val" id="valEmailStatus" style="font-size:20px; padding-top:6px;">CONFIGURED</div>
+        <div class="metric-sub" id="valEmailTarget">owner@server.com</div>
+      </div>
+
+      <!-- CPU & RAM -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">Memory & Load</span>
+          <span class="metric-icon">📈</span>
+        </div>
+        <div class="metric-val" id="valMemory">-- / -- GB</div>
+        <div class="metric-sub" id="valLoad">Load Avg: 0.00, 0.00, 0.00</div>
+      </div>
+    </section>
+
+    <!-- LIVE SERVER SCAN CONSOLE -->
+    <section class="card" id="scanConsoleCard" style="display:none;">
+      <div class="card-header">
+        <div class="card-title">
+          <span>⚡</span> Live Forensic Scan Progress
+        </div>
+        <span class="badge badge-critical" id="scanStatusBadge">SCANNING IN PROGRESS...</span>
+      </div>
+      <div class="terminal-box" id="scanTerminal">Initializing scan...</div>
+    </section>
+
+    <!-- DETECTED THREATS & INCIDENTS TABLE -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>📋</span> Intercepted Threats & Forensic Incident Log
+        </div>
+        <span style="font-size:13px; color:var(--text-muted);" id="incidentCountLabel">0 Incidents Found</span>
+      </div>
+
+      <div class="table-responsive">
+        <table id="threatsTable">
+          <thead>
+            <tr>
+              <th>Severity</th>
+              <th>Threat Type</th>
+              <th>Infected File Path</th>
+              <th>Detected At</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="threatsTbody">
+            <tr>
+              <td colspan="6" class="empty-state">
+                ✓ No active threats detected on this server. Background shield is actively watching.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SERVER SYSTEM INFORMATION -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>💻</span> Server Host Telemetry
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; font-size:13.5px;">
+        <div><strong style="color:var(--text-muted);">OS Platform:</strong> <span id="infoPlatform">--</span></div>
+        <div><strong style="color:var(--text-muted);">IP Address:</strong> <span id="infoIp">--</span></div>
+        <div><strong style="color:var(--text-muted);">System Uptime:</strong> <span id="infoUptime">--</span></div>
+        <div><strong style="color:var(--text-muted);">CPU Cores:</strong> <span id="infoCpus">--</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- EMAIL SETTINGS MODAL -->
+  <div class="modal-overlay" id="emailModal">
+    <div class="modal-content">
+      <div class="modal-title">
+        <span>⚙️ Server Owner Email Alert Settings</span>
+        <button style="background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" id="btnCloseModal">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:18px;">
+        When an infected file or trojan is detected, an immediate alert email will be dispatched to this address.
+      </p>
+
+      <form id="settingsForm">
+        <div class="form-group">
+          <label class="form-label">Server Owner Email (Recipient)</label>
+          <input type="email" class="form-input" id="ownerEmail" placeholder="admin@yourserver.com" required>
+        </div>
+
+        <div style="margin: 18px 0; border-top: 1px solid var(--border-card); padding-top: 14px;">
+          <strong style="font-size:14px; color:var(--accent-cyan);">SMTP Mail Server Configuration</strong>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">SMTP Host (e.g. smtp.gmail.com, email-smtp.us-east-1.amazonaws.com)</label>
+          <input type="text" class="form-input" id="smtpHost" placeholder="smtp.gmail.com">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SMTP Port (465 SSL or 587)</label>
+            <input type="text" class="form-input" id="smtpPort" placeholder="465">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SMTP From Email</label>
+            <input type="text" class="form-input" id="smtpFrom" placeholder="security@yourserver.com">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">SMTP Username</label>
+          <input type="text" class="form-input" id="smtpUser" placeholder="smtp_user">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">SMTP Password</label>
+          <input type="password" class="form-input" id="smtpPass" placeholder="••••••••••••">
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:24px;">
+          <button type="button" class="btn btn-secondary" id="btnTestEmail">
+            <span>📨</span> Send Test Email
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <span>💾</span> Save Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

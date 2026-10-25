@@ -15,7 +15,9 @@
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
-    "fix:mac": "bash fix-mac.sh"
+    "fix:mac": "bash fix-mac.sh",
+    "server": "node server/server.js",
+    "start:server": "node server/server.js"
   },
   "keywords": [
     "security",

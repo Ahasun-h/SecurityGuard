@@ -90,17 +90,26 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 > 2. ⚡ **Silent PC Malware Scan**: It immediately scans your workstation, host persistence hooks, and developer application signatures in the background.
 > 3. 🔔 **Instant Desktop Notification**: Once the background scan finishes, you receive a native desktop notification and the full telemetry report appears directly in the **Reports** tab.
 
-<details>
-<summary><strong>Advanced: Headless Server CLI Setup (Optional for headless Linux machines)</strong></summary>
-
-```bash
-# Install and activate the background Guard engine daemon on headless servers
-curl -fsSL https://security.sparktech.agency/guard.sh | sudo bash
-```
-
-</details>
-
 ---
+
+## 🖥️ Security Guard Server Edition (Web View & Instant Email Alerts)
+
+A dedicated, lightweight daemon for cloud servers, VPS, and Linux hosts (Ubuntu, Debian, CentOS, RHEL, AWS EC2).
+
+### 🌟 Key Server Capabilities:
+- 🛡️ **Continuous Server Malware Shield**: Monitors `/var/www`, web applications, `/etc/cron.*`, and `/home` directories in real time for injected webshells, backdoors, reverse-shell scripts, and crypto-miners.
+- 📧 **Instant Email Alerts to Server Owner**: The moment an infected file or trojan is intercepted, an alert email is dispatched immediately to the server owner with infected file paths, malware names, and direct links.
+- 🌐 **Executive Web View Dashboard (`http://<SERVER_IP>:8888`)**: View live server telemetry, resource loads (CPU/RAM), threat incident logs, and trigger on-demand forensic scans directly from any web browser.
+- ⚡ **1-Click Remote Neutralization**: Isolate and neutralize infected files directly from the web interface.
+
+### ⚡ 1-Line Server Install (Auto-Starts via Systemd)
+Run this single command on your Linux server:
+```bash
+curl -fsSL https://ahasun-h.github.io/SecurityGuard/install-server.sh | sudo bash
+```
+*(Or run manually in this repository: `npm run server`)*
+
+Once installed, open `http://<YOUR_SERVER_IP>:8888` in your browser to access the Web View!
 
 ## 🚀 Quick Start
 

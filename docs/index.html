@@ -266,6 +266,7 @@
         <button class="tab-btn active" data-tab="mac">🍏 macOS</button>
         <button class="tab-btn" data-tab="win">🪟 Windows</button>
         <button class="tab-btn" data-tab="linux">🐧 Linux</button>
+        <button class="tab-btn" data-tab="server">🖥️ Server Edition (Web View)</button>
       </div>
 
       <!-- TAB CONTENT: MAC -->
@@ -394,6 +395,47 @@
                 <code>sudo dpkg -i security-guard_1.0.0_amd64.deb</code>
                 <button class="btn-copy" data-copy="sudo dpkg -i security-guard_1.0.0_amd64.deb">Copy</button>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: SERVER EDITION -->
+      <div class="tab-pane" id="tab-server">
+        <div class="guide-box">
+          <div class="callout callout-info" style="margin-bottom: 24px; border-left: 4px solid var(--accent-cyan);">
+            <span>🖥️</span>
+            <div style="width: 100%;">
+              <strong style="color:var(--accent-cyan); font-size:16px;">Headless Server Edition &bull; Continuous Watcher + Web View Dashboard</strong>
+              <p style="font-size:13.5px; color:var(--text-main); margin:6px 0 10px 0;">Installs as an auto-starting systemd daemon on Ubuntu, Debian, CentOS, RHEL, or AWS EC2 with immediate email alerting to the server owner:</p>
+              <div class="code-box">
+                <code>curl -fsSL https://ahasun-h.github.io/SecurityGuard/install-server.sh | sudo bash</code>
+                <button class="btn-copy" data-copy="curl -fsSL https://ahasun-h.github.io/SecurityGuard/install-server.sh | sudo bash">Copy Command</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4 class="step-title">Continuous Server Malware Shield</h4>
+              <p class="step-desc">Watches <code>/var/www</code>, web applications, <code>/etc/cron.*</code>, and user homes in real-time for injected webshells, backdoors, reverse-shell droppers, and crypto-miners.</p>
+            </div>
+          </div>
+
+          <div class="guide-step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4 class="step-title">Instant Server Owner Email Alerts</h4>
+              <p class="step-desc">The moment an anomaly or trojan is intercepted, an alert email is dispatched immediately to your email address with the infected file path, malware classification, and forensic links.</p>
+            </div>
+          </div>
+
+          <div class="guide-step" style="margin-bottom:0;">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4 class="step-title">Executive Web View Dashboard</h4>
+              <p class="step-desc">Access <code>http://&lt;YOUR_SERVER_IP&gt;:8888</code> from any browser to view live server metrics, incident histories, trigger on-demand scans, and neutralize threats with 1 click.</p>
             </div>
           </div>
         </div>
