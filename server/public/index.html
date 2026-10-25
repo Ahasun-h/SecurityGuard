@@ -3,11 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Guard Server &bull; Cyber Defense View</title>
+  <title>Security Guard Server &bull; 24/7 Active Cyber Defense</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" type="image/png" href="/assets/icon.png">
 </head>
 <body>
+  <!-- FLOATING URGENT THREAT ALERT BANNER -->
+  <div class="urgent-threat-banner" id="urgentBanner" style="display:none;">
+    <div class="banner-content">
+      <span class="banner-siren">🚨</span>
+      <div class="banner-text">
+        <strong id="bannerTitle">CRITICAL MALWARE INTERCEPTED</strong>
+        <span id="bannerSubtitle">A malicious webshell/payload was caught. An immediate alert was emailed to the server owner.</span>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <button class="btn btn-secondary btn-sm" id="btnBannerDetails">View Forensic Report</button>
+      <button class="btn btn-danger btn-sm" id="btnBannerNeutralize">⚡ Neutralize Now</button>
+      <button class="banner-close" id="btnBannerClose" title="Dismiss">&times;</button>
+    </div>
+  </div>
+
   <div class="container">
     <!-- TOP NAVIGATION -->
     <header class="navbar">
@@ -19,8 +35,11 @@
         </div>
       </div>
       <div class="nav-actions">
+        <button class="btn btn-secondary" id="btnSoundToggle" title="Toggle audible alarm sound">
+          <span id="soundIcon">🔔</span> <span id="soundLabel">Sound: ON</span>
+        </button>
         <button class="btn btn-primary" id="btnScanNow">
-          <span>🔍</span> Scan Server Now
+          <span>🔍</span> Scan Server
         </button>
         <button class="btn btn-secondary" id="btnEmailSettings">
           <span>⚙️</span> Email Alerts
@@ -30,6 +49,19 @@
         </button>
       </div>
     </header>
+
+    <!-- 24/7 CONTINUOUS OBSERVATION RADAR BAR -->
+    <section class="observation-bar">
+      <div class="radar-status">
+        <span class="radar-dot"></span>
+        <span class="radar-label">24/7 Observer: <strong style="color:var(--accent-green);">ACTIVE & WATCHING</strong></span>
+      </div>
+      <div class="observer-metrics">
+        <span>Files Observed: <strong id="lblObservedCount">0</strong></span>
+        <span class="divider">&bull;</span>
+        <span class="live-ticker" id="lblLiveTicker">Listening for server filesystem events in real-time...</span>
+      </div>
+    </section>
 
     <!-- LIVE METRICS GRID -->
     <section class="metrics-grid">
@@ -50,7 +82,7 @@
           <span class="metric-icon">⚡</span>
         </div>
         <div class="metric-val" style="color:var(--accent-green);" id="valShield">ACTIVE</div>
-        <div class="metric-sub">Continuous watcher daemon</div>
+        <div class="metric-sub">Continuous 24/7 watcher</div>
       </div>
 
       <!-- EMAIL NOTIFICATIONS -->
@@ -103,13 +135,13 @@
               <th>Infected File Path</th>
               <th>Detected At</th>
               <th>Status</th>
-              <th>Action</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="threatsTbody">
             <tr>
               <td colspan="6" class="empty-state">
-                ✓ No active threats detected on this server. Background shield is actively watching.
+                ✓ No active threats detected on this server. 24/7 observer is actively watching all file changes.
               </td>
             </tr>
           </tbody>
@@ -133,12 +165,44 @@
     </section>
   </div>
 
+  <!-- FORENSIC REPORT DETAILS MODAL -->
+  <div class="modal-overlay" id="forensicModal">
+    <div class="modal-content" style="max-width:700px;">
+      <div class="modal-title">
+        <span>🔬 Threat Forensic & Incident Report</span>
+        <button class="modal-close" id="btnCloseForensic">&times;</button>
+      </div>
+
+      <div class="forensic-grid">
+        <div><span class="forensic-label">Threat Name:</span> <strong id="repName" style="color:#f87171;">--</strong></div>
+        <div><span class="forensic-label">Severity:</span> <span class="badge badge-critical" id="repSeverity">CRITICAL</span></div>
+        <div style="grid-column:1 / -1;"><span class="forensic-label">Infected Path:</span> <span class="path-code" id="repFile">--</span></div>
+        <div style="grid-column:1 / -1;"><span class="forensic-label">SHA-256 Hash:</span> <code id="repHash" style="color:var(--accent-cyan); font-size:12px; word-break:break-all;">--</code></div>
+        <div><span class="forensic-label">Timestamp:</span> <span id="repTime">--</span></div>
+        <div><span class="forensic-label">Status:</span> <span id="repStatus">ACTIVE</span></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <span class="forensic-label" style="display:block; margin-bottom:6px;">Intercepted Malicious Code:</span>
+        <pre class="code-box" id="repSnippet">--</pre>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:24px;">
+        <button type="button" class="btn btn-secondary" id="btnModalClose">Close</button>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-danger" id="btnModalDelete">🗑️ Delete File</button>
+          <button type="button" class="btn btn-primary" id="btnModalNeutralize">⚡ Neutralize (Quarantine)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- EMAIL SETTINGS MODAL -->
   <div class="modal-overlay" id="emailModal">
     <div class="modal-content">
       <div class="modal-title">
         <span>⚙️ Server Owner Email Alert Settings</span>
-        <button style="background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;" id="btnCloseModal">&times;</button>
+        <button class="modal-close" id="btnCloseModal">&times;</button>
       </div>
 
       <p style="font-size:13px; color:var(--text-muted); margin-bottom:18px;">

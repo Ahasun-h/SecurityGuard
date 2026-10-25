@@ -87,6 +87,16 @@ class Mailer {
           <td class="label">Detection Time:</td>
           <td class="value">${timestamp}</td>
         </tr>
+        ${threatData.sha256 ? `
+        <tr>
+          <td class="label">SHA-256 Hash:</td>
+          <td class="value" style="font-size:12px; color:#38bdf8;">${threatData.sha256}</td>
+        </tr>` : ''}
+        ${threatData.matchedSnippet ? `
+        <tr>
+          <td class="label">Intercepted Code:</td>
+          <td class="value" style="color:#f87171; background:#070a12; padding:8px 10px; border-radius:6px; font-size:12.5px; border:1px solid #7f1d1d;"><code>${String(threatData.matchedSnippet).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></td>
+        </tr>` : ''}
       </table>
 
       <div class="btn-container">
