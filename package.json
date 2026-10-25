@@ -51,14 +51,12 @@
       "preload.js",
       "assets/**/*",
       "renderer/**/*",
-      "package.json",
-      "guard.sh"
+      "package.json"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.icns",
       "hardenedRuntime": true,
-      "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.inherit.plist",
       "target": [

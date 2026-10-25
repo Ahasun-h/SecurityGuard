@@ -455,6 +455,7 @@ function switchView(tabId) {
 async function refreshAllStatus() {
   await Promise.all([
     checkGuardEngine(),
+    checkGitHooksStatus(),
     checkGitHubAuth(),
     loadLocalTargets(),
     loadAiSettings()
@@ -545,6 +546,57 @@ async function checkGuardEngine() {
     }
   } catch (e) {
     console.error('Guard status check error:', e);
+  }
+}
+
+// 1b. Check & Update Git Push & Pull Interceptor (Global Hooks)
+async function checkGitHooksStatus() {
+  try {
+    const status = await window.guardAPI.getGitHooksStatus();
+    updateGitHooksUI(status);
+  } catch (err) {
+    console.warn('Failed to check git hooks status:', err);
+  }
+}
+
+function updateGitHooksUI(status) {
+  const dot = document.getElementById('gitHooksDot');
+  const badge = document.getElementById('gitHooksBadge');
+  const btn = document.getElementById('btnToggleGitHooks');
+  const pathText = document.getElementById('gitHooksPathText');
+
+  if (pathText && status && status.hooksPath) {
+    pathText.textContent = status.hooksPath;
+  }
+
+  if (status && status.enabled) {
+    if (dot) {
+      dot.style.background = '#10b981';
+      dot.style.boxShadow = '0 0 10px rgba(16,185,129,0.5)';
+    }
+    if (badge) {
+      badge.textContent = 'INTERCEPTOR ACTIVE';
+      badge.style.background = '#eef7f2';
+      badge.style.color = '#1e7e51';
+    }
+    if (btn) {
+      btn.textContent = '🛡️ Global Hooks Active';
+      btn.className = 'btn-pill-primary btn-sm';
+    }
+  } else {
+    if (dot) {
+      dot.style.background = '#94a3b8';
+      dot.style.boxShadow = 'none';
+    }
+    if (badge) {
+      badge.textContent = 'INTERCEPTOR PAUSED';
+      badge.style.background = '#f1f5f9';
+      badge.style.color = '#64748b';
+    }
+    if (btn) {
+      btn.textContent = '⚡ Enable Global Interceptor';
+      btn.className = 'btn-pill-outline btn-sm';
+    }
   }
 }
 
@@ -853,7 +905,6 @@ function renderGitHubFullGrid() {
       <span class="grid-meta-count">Showing <strong>${visibleRepos.length}</strong> of <strong>${totalCount}</strong> repositories</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         ${hasMore ? `<button class="btn-pill-secondary btn-grid-load-more">Load ${Math.min(30, totalCount - appState.displayCount)} More ▼</button>` : ''}
-        <button class="btn-danger-outline btn-remove-all-collabs" style="font-size:11px; padding:5px 14px;">⛔ Remove All Collaborators</button>
       </div>
     </div>
     <div class="github-repo-cards" id="githubRepoCards">
@@ -870,6 +921,7 @@ function renderGitHubFullGrid() {
           </div>
           <div style="display:flex; gap:6px;">
             <button class="btn-pill-secondary btn-grid-scan" data-id="${r.id}">Audit</button>
+            <button class="btn-pill-primary btn-repo-ci-rule" data-fullname="${r.full_name}" title="Install automated GitHub Actions Security & Malware Scan Rule on push/pull">🛡️ CI/CD Rule</button>
           </div>
         </div>
       `;
@@ -885,9 +937,29 @@ function renderGitHubFullGrid() {
       </div>` : ''}
   `;
 
-  // Collaborator removal button
-  container.querySelectorAll('.btn-remove-all-collabs').forEach(btn => {
-    btn.addEventListener('click', () => startRemoveAllCollabs());
+  // Install CI/CD Pipeline (Continuous Integration, Security & Malware Scan, Continuous Deployment)
+  container.querySelectorAll('.btn-repo-ci-rule').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const fullName = btn.dataset.fullname;
+      if (!confirm(`🚀 Deploy Multi-Job CI/CD Pipeline to ${fullName}?\n\nThis configures:\n1. 🧪 Continuous Integration (Test & Build)\n2. 🛡️ Security & Malware Scan (Trojan & supply-chain blocker)\n3. 🚀 Continuous Deployment (SSH to VPS gating)\n\nTriggered on every push and pull request.`)) return;
+      btn.disabled = true;
+      btn.textContent = 'Installing...';
+      try {
+        const res = await window.guardAPI.installCiWorkflow(fullName);
+        if (res.success) {
+          alert('✅ ' + (res.message || 'CI/CD Pipeline workflow installed successfully!'));
+          btn.textContent = '✓ Protected';
+        } else {
+          alert('❌ ' + (res.error || 'Failed to install workflow'));
+          btn.disabled = false;
+          btn.textContent = '🛡️ CI/CD Rule';
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '🛡️ CI/CD Rule';
+      }
+    });
   });
 
   // Load more buttons in GitHub tab
@@ -1689,7 +1761,7 @@ function formatFinding(f) {
     isActionable = false;
   }
 
-  const isDeletable = isActionable && Boolean(where);
+  const isDeletable = isActionable && Boolean(where) && !where.startsWith('/Applications') && !where.endsWith('.app');
   const canSurgicalClean = isActionable && Boolean(where) && !category.includes('CODESIGN') && !where.endsWith('.app');
 
   return {
@@ -1829,6 +1901,127 @@ function initEventListeners() {
         localPaths: paths,
         scanLocalPc: true
       });
+    });
+  }
+
+  // Local Git Push & Pull Interceptor (Global Hooks) Toggle
+  const btnToggleGitHooks = document.getElementById('btnToggleGitHooks');
+  if (btnToggleGitHooks) {
+    btnToggleGitHooks.addEventListener('click', async () => {
+      btnToggleGitHooks.disabled = true;
+      try {
+        const cur = await window.guardAPI.getGitHooksStatus();
+        if (cur && cur.enabled) {
+          const res = await window.guardAPI.removeGitHooks();
+          alert(res?.message || 'Global Git Interceptor deactivated.');
+        } else {
+          const res = await window.guardAPI.installGitHooks();
+          if (res && res.success) {
+            alert('✅ ' + (res.message || 'Global Git Push & Pull Interceptor activated!'));
+          } else {
+            alert('❌ ' + (res?.error || 'Failed to install hooks'));
+          }
+        }
+        await checkGitHooksStatus();
+      } catch (e) {
+        if (e && e.message && e.message.includes('No handler registered')) {
+          alert('🔄 Application Restart Required:\n\nThe Electron main background process must reload to register the new Git Interceptor service.\n\nPlease restart the application in your terminal:\n1. Press Ctrl+C in your terminal to stop it\n2. Run: npm start');
+        } else {
+          alert('Note: ' + (e?.message || e));
+        }
+      } finally {
+        btnToggleGitHooks.disabled = false;
+      }
+    });
+  }
+
+  // GitHub Tab: Select All Repositories
+  const btnSelectAllRepos = document.getElementById('btnSelectAllRepos');
+  if (btnSelectAllRepos) {
+    btnSelectAllRepos.addEventListener('click', () => {
+      const allSelected = appState.repos.length > 0 && appState.repos.every(r => appState.selectedRepoIds.has(r.id));
+      if (allSelected) {
+        appState.selectedRepoIds.clear();
+        btnSelectAllRepos.textContent = 'Select All';
+      } else {
+        appState.repos.forEach(r => appState.selectedRepoIds.add(r.id));
+        btnSelectAllRepos.textContent = 'Deselect All';
+      }
+      updateSelectedCounts();
+      renderGitHubFullGrid();
+    });
+  }
+
+  // GitHub Tab: Scan Selected From Tab
+  const btnScanSelectedFromTab = document.getElementById('btnScanSelectedFromTab');
+  if (btnScanSelectedFromTab) {
+    btnScanSelectedFromTab.addEventListener('click', () => {
+      const selected = appState.repos.filter(r => appState.selectedRepoIds.has(r.id));
+      if (selected.length === 0) {
+        alert('Please select at least one repository using the checkboxes before scanning.');
+        return;
+      }
+      startScanPipeline({
+        githubRepos: selected,
+        localPaths: [],
+        scanLocalPc: false
+      });
+    });
+  }
+
+  // GitHub Tab: Protect All Repos (Batch Install CI/CD Pipeline matching user screenshot)
+  const btnInstallCiAll = document.getElementById('btnInstallCiAll');
+  if (btnInstallCiAll) {
+    btnInstallCiAll.addEventListener('click', async () => {
+      if (!appState.repos || appState.repos.length === 0) {
+        alert('Please fetch your GitHub repositories first before configuring CI/CD pipelines.');
+        return;
+      }
+
+      const totalRepos = appState.repos.length;
+      if (!confirm(`🚀 Deploy Multi-Job CI/CD Pipeline to all ${totalRepos} GitHub Repositories?\n\nThis will configure:\n1. 🧪 Continuous Integration (Test & Build)\n2. 🛡️ Security & Malware Scan (Pre-merge & push trojan check)\n3. 🚀 Continuous Deployment (SSH to VPS gating)\n\non push & pull request for all branches.`)) {
+        return;
+      }
+
+      const banner = document.getElementById('batchCiProgressBanner');
+      const progressCount = document.getElementById('batchCiProgressCount');
+      const progressBar = document.getElementById('batchCiProgressBar');
+      const currentRepoText = document.getElementById('batchCiCurrentRepo');
+
+      if (banner) banner.style.display = 'block';
+      if (progressBar) progressBar.style.width = '0%';
+      if (progressCount) progressCount.textContent = `0 / ${totalRepos}`;
+      btnInstallCiAll.disabled = true;
+
+      window.guardAPI.onCiWorkflowProgress((data) => {
+        if (progressBar && data.total) {
+          const pct = Math.round((data.current / data.total) * 100);
+          progressBar.style.width = `${pct}%`;
+        }
+        if (progressCount && data.total) {
+          progressCount.textContent = `${data.current} / ${data.total}`;
+        }
+        if (currentRepoText) {
+          currentRepoText.textContent = `[${(data.status || 'info').toUpperCase()}] ${data.repo}${data.message ? ' — ' + data.message : ''}`;
+        }
+      });
+
+      try {
+        const repoList = appState.repos.map(r => r.full_name);
+        const res = await window.guardAPI.installCiWorkflowAll(repoList);
+        if (res.success) {
+          alert(`✅ CI/CD Pipeline successfully installed to ${res.successful.length} repositories!`);
+        } else {
+          alert(`⚠️ CI/CD batch installation finished: ${res.error || (res.failed && res.failed.length + ' failed')}`);
+        }
+      } catch (err) {
+        alert('Batch installation error: ' + err.message);
+      } finally {
+        btnInstallCiAll.disabled = false;
+        setTimeout(() => {
+          if (banner) banner.style.display = 'none';
+        }, 5000);
+      }
     });
   }
 

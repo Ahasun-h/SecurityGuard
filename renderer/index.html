@@ -109,15 +109,6 @@
             </div>
 
             <!-- Section: Repositories & Workspaces Title + Filter Pills -->
-            <!-- Dedicated Search & Quick Filter on Home Screen -->
-            <div class="home-search-container" style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; background: #fff; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18" style="color: var(--text-muted); flex-shrink: 0;">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input type="text" id="homeRepoSearchInput" placeholder="Search loaded repositories by name, owner, or branch..." style="border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; width: 100%; color: var(--text-main);">
-              <span id="homeSearchCountBadge" style="font-size: 11px; color: var(--text-muted); background: var(--bg-canvas); padding: 3px 8px; border-radius: 20px; white-space: nowrap;"></span>
-            </div>
 
             <div class="section-header-row">
               <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -172,16 +163,35 @@
           </div>
 
           <!-- TAB: GITHUB CLOUD REPOSITORIES -->
+          <!-- TAB: GITHUB CLOUD REPOSITORIES -->
           <div class="view-pane" id="view-github">
             <div class="pane-headline-row">
               <div>
                 <h2 class="pane-headline">GitHub Cloud Defense</h2>
                 <p class="pane-sub">Authenticated deep inspection for all public and private repositories.</p>
               </div>
-              <div class="pane-actions">
+              <div class="pane-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <button class="btn-pill-secondary" id="btnSelectAllRepos">Select All</button>
+                <button class="btn-pill-outline" id="btnInstallCiAll" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;" title="Install automated multi-job CI/CD Pipeline (Test, Security Scan & Deploy) to all repositories">
+                  🚀 Protect All Repos (CI/CD Pipeline)
+                </button>
                 <button class="btn-pill-primary" id="btnScanSelectedFromTab">Scan Selected (<span id="selectedCountTab">0</span>)</button>
               </div>
+            </div>
+
+            <!-- Batch CI/CD Installation Status Banner -->
+            <div id="batchCiProgressBanner" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 18px; margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <strong style="color:#1d4ed8; font-size:13px; display:flex; align-items:center; gap:8px;">
+                  <span class="spinner-dot" style="border-color:#2563eb; border-top-color:transparent; width:14px; height:14px; border-width:2px; display:inline-block;"></span>
+                  Installing CI/CD Pipeline to Repositories...
+                </strong>
+                <span id="batchCiProgressCount" style="font-size:12px; font-weight:700; color:#1e40af;">0 / 0</span>
+              </div>
+              <div style="height:6px; background:#dbeafe; border-radius:3px; overflow:hidden;">
+                <div id="batchCiProgressBar" style="width:0%; height:100%; background:#2563eb; transition:width 0.3s ease;"></div>
+              </div>
+              <p id="batchCiCurrentRepo" style="font-size:11px; color:#475569; margin:6px 0 0 0; font-family:monospace;"></p>
             </div>
 
             <div class="github-repo-grid" id="githubRepoFullList">
@@ -204,39 +214,64 @@
               </div>
             </div>
 
-            <!-- CONTINUOUS BACKGROUND SHIELD STATUS CARD -->
-            <div id="backgroundShieldCard" style="background:#ffffff; border:1px solid var(--border-light); border-radius:14px; padding:18px 20px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                  <span id="shieldStatusDot" style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#10b981; box-shadow:0 0 10px rgba(16,185,129,0.5);"></span>
+            <!-- UNIFIED WORKSTATION SHIELD & GIT INTERCEPTOR HUB -->
+            <div id="unifiedWorkstationShieldCard" class="unified-shield-card">
+              <div class="shield-hub-header">
+                <div class="shield-hub-title-group">
+                  <span id="gitHooksDot" class="shield-live-glow-dot"></span>
                   <div>
-                    <h3 style="font-size:14px; font-weight:700; margin:0; color:var(--text-main); display:flex; align-items:center; gap:8px;">
-                      Continuous Background Malware Shield
-                      <span id="shieldStatusPill" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#eef7f2; color:#1e7e51;">ACTIVE DAEMON</span>
-                      <span id="shieldVersionBadge" style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; background:#e0f2fe; color:#0369a1;">guard v2.2.0</span>
-                    </h3>
-                    <p id="shieldStatusSub" style="font-size:12px; color:var(--text-muted); margin:3px 0 0 0;">
-                      Kernel & filesystem watcher (<code>guard watch</code>) is continuously active in the background across Mac, Windows & Linux.
+                    <div class="shield-title-row">
+                      <h3 class="shield-hub-title">Real-Time Workstation Shield &amp; Git Interceptor</h3>
+                      <span id="gitHooksBadge" class="shield-active-pill">INTERCEPTOR ACTIVE</span>
+                      <span class="shield-version-pill">Native v1.0</span>
+                    </div>
+                    <p class="shield-hub-sub">
+                      Protects local developer workspaces, scans persistence hooks, and intercepts all <code>git push</code> &amp; <code>git pull</code> actions PC-wide.
                     </p>
                   </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <button class="btn-pill-secondary" id="btnRunHostTriage" style="font-size:12px; padding:7px 14px; display:inline-flex; align-items:center; gap:6px;">
-                    ⚡ Run Host Triage (<code>guard triage</code>)
-                  </button>
-                  <button class="btn-pill-outline" id="btnToggleDaemon" style="font-size:12px; padding:7px 14px;">
-                    Daemon Settings
-                  </button>
-                  <button class="btn-pill-outline" id="btnBootstrapGuard" style="font-size:12px; padding:7px 14px;" title="Verify guard.sh installer">
-                    🔄 Verify Engine
-                  </button>
+              </div>
+
+              <!-- Two Column Feature Grid -->
+              <div class="shield-hub-grid">
+                <!-- Column 1: Background Watcher & Persistence -->
+                <div class="shield-subcard">
+                  <div class="subcard-header">
+                    <span class="subcard-icon">🖥️</span>
+                    <div>
+                      <h4 class="subcard-title">Host Persistence &amp; Malware Watcher</h4>
+                      <p class="subcard-desc">Monitors ~/Desktop, ~/Downloads, ~/Projects and user LaunchAgents in background.</p>
+                    </div>
+                  </div>
+                  <div class="subcard-actions">
+                    <button class="btn-pill-secondary btn-sm" id="btnRunHostTriage">⚡ Persistence Triage</button>
+                    <button class="btn-pill-outline btn-sm" id="btnToggleDaemon">Shield Status</button>
+                  </div>
+                </div>
+
+                <!-- Column 2: Global Git Interceptor -->
+                <div class="shield-subcard">
+                  <div class="subcard-header">
+                    <span class="subcard-icon">🐙</span>
+                    <div>
+                      <h4 class="subcard-title">Global Git Push &amp; Pull Interceptor</h4>
+                      <p class="subcard-desc">Hooks <code>pre-push</code> &amp; <code>post-merge</code> to block contaminated commits before push.</p>
+                    </div>
+                  </div>
+                  <div class="subcard-actions">
+                    <button class="btn-pill-primary btn-sm" id="btnToggleGitHooks">
+                      🛡️ Global Hooks Active
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div id="shieldMetaRow" style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; font-size:11px; color:var(--text-muted); padding-top:10px; border-top:1px solid #f1f5f9;">
+
+              <!-- Telemetry strip -->
+              <div class="shield-telemetry-strip">
+                <span>📁 <strong>Hooks Path:</strong> <code id="gitHooksPathText">~/.guard/hooks</code></span>
                 <span>🖥️ <strong>Platform:</strong> <span id="shieldPlatformText">macOS darwin-arm64</span></span>
-                <span>⚙️ <strong>Service Name:</strong> <span id="shieldServiceText">me.syedbipul.guard</span></span>
-                <span>🛡️ <strong>Fail-Closed Hash:</strong> <span style="color:#10b981; font-weight:700;">SHA-256 Verified</span></span>
-                <span>🚀 <strong>Service Hook:</strong> <span>pre-push & clone interception active</span></span>
+                <span>⚙️ <strong>Interception:</strong> <span>BeaverTail, fake fonts &amp; poisoned scripts</span></span>
+                <span>🚨 <strong>Response:</strong> <span>Auto-abort push + native OS desktop alert</span></span>
               </div>
             </div>
 
@@ -678,10 +713,10 @@
           </div>
         </div>
 
-        <!-- Section: Settings & Filters -->
+        <!-- Section: Scan Scope & Target Filters -->
         <div class="right-section filter-section">
-          <h3 class="right-section-title">Settings</h3>
-          <p class="filter-by-label">Filter by:</p>
+          <h3 class="right-section-title">Scan Scope &amp; Targets</h3>
+          <p class="filter-by-label">Filters for next scan:</p>
 
           <div class="custom-checkbox-list">
             <label class="custom-check-row">

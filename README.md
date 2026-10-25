@@ -183,6 +183,19 @@ Strict cryptographic code signature and binary tamper detection for core develop
   - **Ollama** (Local private models: `llama3`, `deepseek-r1`, `mistral`)
 - Generates executive risk summaries, vector analyses, and copy-paste terminal excision playbooks.
 
+### 9. 🛡️ Global Git Push & Pull Interceptor (Global Core Hooks)
+- Intercepts all local `git push` and `git pull` actions across the PC via `git config --global core.hooksPath ~/.guard/hooks`.
+- **Pre-Push Interception**: Scans files queued for push; blocks pushes containing droppers, Lazarus BeaverTail info-stealers, or backdoors before remote repositories are contaminated.
+- **Post-Merge Interception**: Automatically alerts developers if incoming code pulled from remote contributors introduces security risks.
+- **Toggleable Control**: Activate or deactivate anytime with 1 click in the Local PC Workstation Hub.
+
+### 10. 🚀 Automated 3-Job GitHub Actions CI/CD Pipeline (1-Click Deploy)
+- Automatically generates and installs enterprise-grade GitHub Actions workflows (`.github/workflows/ci-cd.yml`):
+  1. **Continuous Integration (Test & Build)**: Installs dependencies, runs test suites, builds production bundles.
+  2. **Security & Malware Scan**: Static analysis, npm dependency audit, secret leak detection, and BeaverTail heuristic scanning.
+  3. **Continuous Deployment (SSH to VPS)**: Automated deployment to remote servers or cloud environments via SSH.
+- **1-Click Bulk Deployment**: Protect individual repositories or deploy the complete CI/CD defense pipeline across all connected repositories at once.
+
 ---
 
 ## 🔨 How to Build From Source

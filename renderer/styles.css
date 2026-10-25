@@ -1979,3 +1979,167 @@ body {
   flex-direction: column;
   gap: 8px;
 }
+
+/* =========================================
+   UNIFIED WORKSTATION SHIELD & GIT INTERCEPTOR
+   ========================================= */
+.unified-shield-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.shield-hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.shield-hub-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.shield-live-glow-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+  flex-shrink: 0;
+}
+
+.shield-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shield-hub-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.shield-active-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #eef7f2;
+  color: #1e7e51;
+  letter-spacing: 0.5px;
+}
+
+.shield-version-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.shield-hub-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+  line-height: 1.5;
+}
+
+.shield-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.shield-subcard {
+  background: #fbfaf8;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.shield-subcard:hover {
+  background: #ffffff;
+  border-color: var(--border-muted);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.subcard-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.subcard-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.subcard-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.subcard-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 3px 0 0 0;
+  line-height: 1.4;
+}
+
+.subcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+}
+
+.mini-status-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.mini-status-badge.active {
+  background: #eef7f2;
+  color: #1e7e51;
+}
+
+.shield-telemetry-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}

@@ -1,13 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('guardAPI', {
-  // Guard Binary & Continuous Background Shield
+  // Guard Engine & Shield
   checkGuardStatus: () => ipcRenderer.invoke('guard:check-status'),
-  installGuard: () => ipcRenderer.invoke('guard:install'),
   getDaemonStatus: () => ipcRenderer.invoke('guard:get-daemon-status'),
   runHostTriage: () => ipcRenderer.invoke('guard:run-triage'),
   toggleDaemon: (action) => ipcRenderer.invoke('guard:toggle-daemon', action),
-  bootstrapGuard: () => ipcRenderer.invoke('guard:bootstrap'),
 
   // GitHub Auth & Repos
   getGitHubAuthStatus: () => ipcRenderer.invoke('github:get-auth-status'),
@@ -32,7 +30,12 @@ contextBridge.exposeInMainWorld('guardAPI', {
   switchGitHubAccount: (token) => ipcRenderer.invoke('github:switch-account', token),
   addGitHubAccount: (token) => ipcRenderer.invoke('github:add-account', token),
   removeGitHubAccount: (login) => ipcRenderer.invoke('github:remove-account', login),
-  removeAllCollaborators: () => ipcRenderer.invoke('github:remove-all-collaborators'),
+  installCiWorkflow: (repoFullName) => ipcRenderer.invoke('github:install-ci-workflow', repoFullName),
+  installCiWorkflowAll: (repoList) => ipcRenderer.invoke('github:install-ci-workflow-all', repoList),
+  onCiWorkflowProgress: (callback) => {
+    ipcRenderer.removeAllListeners('github:ci-workflow-progress');
+    ipcRenderer.on('github:ci-workflow-progress', (_event, value) => callback(value));
+  },
   onReposProgress: (callback) => {
     ipcRenderer.removeAllListeners('github:repos-progress');
     ipcRenderer.on('github:repos-progress', (_event, value) => callback(value));
@@ -41,6 +44,11 @@ contextBridge.exposeInMainWorld('guardAPI', {
     ipcRenderer.removeAllListeners('collab:progress');
     ipcRenderer.on('collab:progress', (_event, value) => callback(value));
   },
+
+  // Global PC Git Push & Pull Interceptor Hooks
+  getGitHooksStatus: () => ipcRenderer.invoke('guard:get-git-hooks-status'),
+  installGitHooks: () => ipcRenderer.invoke('guard:install-git-hooks'),
+  removeGitHooks: () => ipcRenderer.invoke('guard:remove-git-hooks'),
 
   // Repo Disinfection
   disinfectRepo: (repoFullName) => ipcRenderer.invoke('github:disinfect-repo', repoFullName),
