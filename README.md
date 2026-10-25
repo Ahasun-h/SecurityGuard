@@ -46,31 +46,26 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 | 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/security-guard_1.0.0_amd64.deb) |
 
 > [!IMPORTANT]
-> ### 🍏 macOS: How to Fix *"Security Guard is damaged and can't be opened. You should move it to the Trash."*
+> ### 🍏 macOS (Sequoia / Sonoma): How to Fix *"Security Guard is damaged and can't be opened. You should move it to the Bin / Trash."*
 > 
-> Because Security Guard is a free open-source cybersecurity platform distributed outside the commercial Apple App Store, modern macOS (Sonoma, Ventura, Sequoia) attaches a quarantine attribute (`com.apple.quarantine`) and displays a misleading *"is damaged"* popup. **The app is completely safe and NOT damaged.**
+> In **macOS Sequoia**, Apple removed the general *"Open Anyway"* button in System Settings for quarantined internet downloads. When you download any open-source app using Chrome or Safari, macOS attaches a quarantine flag (`com.apple.quarantine`) and shows this misleading popup. **The app is completely clean and NOT damaged.**
 >
-> You can bypass this in seconds using **System Settings** or **Terminal**:
+> To open it on your Mac, choose either of these 2 fast solutions:
 >
-> #### ⚙️ Method 1: Mac System Settings (Recommended • Zero Terminal Required)
-> 1. In the popup dialog, click **Cancel** *(do NOT click "Move to Trash")*.
-> 2. Open your Mac's **System Settings** (Click the ** Apple Menu** in the top-left &rarr; **System Settings**).
-> 3. Click **Privacy & Security** in the left sidebar.
-> 4. Scroll down to the **Security** section.
-> 5. You will see a message:  
->    *"Security Guard was blocked from use because it is not from an identified developer."*
-> 6. Click the button: **`Open Anyway`** (next to Security Guard).
-> 7. Enter your Mac administrator password or use Touch ID.
-> 8. When the confirmation prompt appears, click **`Open`**.  
->    *(macOS will remember this permanently, and you can open the app normally forever).*
+> #### ⚡ Method 1: Instant 1-Line Terminal Fix (Works 100% on Sequoia & Sonoma)
+> 1. In the popup dialog, click **Cancel** *(do NOT click "Move to Bin")*.
+> 2. Open **Terminal** and run:
+>    ```bash
+>    xattr -cr "/Applications/Security Guard.app"
+>    ```
+>    *(Or run the included project script: `./fix-mac.sh` or `npm run fix:mac`)*.
+> 3. Double-click **Security Guard** in your Applications folder—it will open immediately without any warning!
 >
-> #### ⚡ Method 2: Instant 1-Line Terminal Fix
-> If you prefer Terminal, simply open Terminal and run:
-> ```bash
-> xattr -cr "/Applications/Security Guard.app"
-> ```
-> *(Or run the included project script: `./fix-mac.sh` or `npm run fix:mac`)*.  
-> Double-click **Security Guard** in your Applications folder and it will open immediately!
+> #### 🖱️ Method 2: Finder Right-Click (Control-Click)
+> 1. Open **Finder** and navigate to your **Applications** folder.
+> 2. Hold down the **Control (Ctrl)** key and click (or **Right-Click**) on **`Security Guard.app`**.
+> 3. Click **Open** from the context menu.
+> 4. In the dialog box that appears, click **Open**. macOS will permanently save your permission.
 
 > [!TIP]
 > **Windows Users — Microsoft Defender SmartScreen ("Windows protected your PC")**:  

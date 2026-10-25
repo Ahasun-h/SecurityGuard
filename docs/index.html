@@ -282,31 +282,28 @@
           <div class="guide-step">
             <div class="step-num">2</div>
             <div class="step-content">
-              <h4 class="step-title">Fix macOS Gatekeeper ("Damaged & Can't Be Opened" Warning)</h4>
-              <p class="step-desc">Because Security Guard is an open-source binary distributed outside the commercial Mac App Store, modern macOS attaches a quarantine flag and may show a warning: <em>"Security Guard is damaged and can't be opened. You should move it to the Trash."</em> <strong>The app is safe and NOT damaged.</strong></p>
+              <h4 class="step-title">Fix macOS Sequoia / Sonoma ("Damaged & Move to Bin" Warning)</h4>
+              <p class="step-desc">In <strong>macOS Sequoia</strong>, Apple removed the general <em>"Open Anyway"</em> button in System Settings for quarantined internet downloads. When downloaded from Chrome or Safari, macOS attaches a quarantine flag and shows: <em>"Security Guard is damaged and can't be opened. You should move it to the Bin."</em> <strong>The application is completely safe and NOT damaged.</strong></p>
               
               <div class="callout callout-info" style="margin-top:14px; margin-bottom:16px;">
-                <span>⚙️</span>
+                <span>⚡</span>
                 <div>
-                  <strong style="color:var(--accent-cyan); font-size:15px;">Method A: Mac System Settings (Recommended • No Terminal Needed)</strong>
-                  <ol style="margin: 8px 0 0 18px; padding: 0; line-height: 1.7; font-size: 13.5px; color: var(--text-main);">
-                    <li>In the warning popup, click <strong>Cancel</strong> <em>(do NOT click Move to Trash)</em>.</li>
-                    <li>Click the <strong> Apple Menu</strong> (top-left of screen) &rarr; choose <strong>System Settings</strong>.</li>
-                    <li>In the left sidebar, click <strong>Privacy & Security</strong>.</li>
-                    <li>Scroll down to the <strong>Security</strong> section.</li>
-                    <li>Under <em>"Security Guard was blocked from use because it is not from an identified developer"</em>, click the button: <strong style="background:rgba(0,240,255,0.15); color:var(--accent-cyan); padding:2px 8px; border-radius:4px;">Open Anyway</strong>.</li>
-                    <li>Enter your Mac password or use Touch ID, then click <strong>Open</strong>.</li>
-                  </ol>
-                  <p style="font-size:12.5px; color:var(--text-muted); margin-top:8px;"><em>macOS will permanently remember this approval, and you can open Security Guard directly from now on.</em></p>
+                  <strong style="color:var(--accent-cyan); font-size:15px;">Method 1: 1-Line Terminal Fix (Works 100% on All Mac Versions)</strong>
+                  <p style="font-size:13.5px; color:var(--text-main); margin:6px 0 10px 0;">Open <strong>Terminal</strong>, paste this command, and press Enter:</p>
+                  <div class="code-box">
+                    <code>xattr -cr "/Applications/Security Guard.app"</code>
+                    <button class="btn-copy" data-copy="xattr -cr &quot;/Applications/Security Guard.app&quot;">Copy Command</button>
+                  </div>
+                  <p style="font-size:12.5px; color:var(--text-muted); margin-top:8px;"><em>This permanently removes the quarantine flag that Chrome attached, and the app will open immediately.</em></p>
                 </div>
               </div>
 
-              <strong style="color:var(--text-main); font-size:14px;">Method B: Instant 1-Line Terminal Fix</strong>
-              <p class="step-desc" style="margin-top:4px;">Open <strong>Terminal</strong> and paste this command to instantly remove the quarantine attribute:</p>
-              <div class="code-box">
-                <code>xattr -cr "/Applications/Security Guard.app"</code>
-                <button class="btn-copy" data-copy="xattr -cr &quot;/Applications/Security Guard.app&quot;">Copy Command</button>
-              </div>
+              <strong style="color:var(--text-main); font-size:14px;">Method 2: Finder Right-Click (Control-Click)</strong>
+              <ol style="margin: 6px 0 0 18px; padding: 0; line-height: 1.7; font-size: 13.5px; color: var(--text-muted);">
+                <li>Open <strong>Finder</strong> &rarr; go to <strong>Applications</strong>.</li>
+                <li>Hold down the <strong>Control (Ctrl)</strong> key and click (or right-click) on <strong><code>Security Guard.app</code></strong>.</li>
+                <li>Click <strong>Open</strong> from the context menu &rarr; then click <strong>Open</strong> in the confirmation box.</li>
+              </ol>
             </div>
           </div>
 
