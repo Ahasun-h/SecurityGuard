@@ -45,14 +45,20 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 | 🐧 **Linux** | **`.AppImage`** *(All Distros)* | 64-bit (x64) | [**Download `.AppImage`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard-1.0.0.AppImage) |
 | 🐧 **Linux** | **`.deb` Package** *(Ubuntu/Debian)* | 64-bit (amd64) | [**Download `.deb`**](https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/security-guard_1.0.0_amd64.deb) |
 
+> [!TIP]
+> ### ⚡ macOS Fast 1-Line Installer (Zero Warnings • Recommended)
+> Run this single command in your Mac Terminal. It automatically downloads the latest release, installs it to your `/Applications` folder, removes any Gatekeeper quarantine flags, and launches the app with **zero warnings**:
+> ```bash
+> curl -fsSL https://ahasun-h.github.io/SecurityGuard/install-mac.sh | bash
+> ```
+
 > [!IMPORTANT]
-> ### 🍏 macOS (Sequoia / Sonoma): How to Fix *"Security Guard is damaged and can't be opened. You should move it to the Bin / Trash."*
-> 
-> In **macOS Sequoia**, Apple removed the general *"Open Anyway"* button in System Settings for quarantined internet downloads. When you download any open-source app using Chrome or Safari, macOS attaches a quarantine flag (`com.apple.quarantine`) and shows this misleading popup. **The app is completely clean and NOT damaged.**
+> ### 🍏 macOS (Sequoia / Sonoma): Manual Installation via .DMG
+> When downloading a `.dmg` using Google Chrome or Safari, macOS attaches a quarantine flag (`com.apple.quarantine`) and may display a misleading popup: *"Security Guard is damaged and can't be opened. You should move it to the Bin / Trash."* **The app is completely clean and NOT damaged.**
 >
-> To open it on your Mac, choose either of these 2 fast solutions:
+> If you installed via the `.dmg`, choose either of these fast solutions:
 >
-> #### ⚡ Method 1: Instant 1-Line Terminal Fix (Works 100% on Sequoia & Sonoma)
+> #### ⚡ Method 1: Instant 1-Line Terminal Fix
 > 1. In the popup dialog, click **Cancel** *(do NOT click "Move to Bin")*.
 > 2. Open **Terminal** and run:
 >    ```bash
