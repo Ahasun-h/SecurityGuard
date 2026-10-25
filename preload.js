@@ -63,6 +63,10 @@ contextBridge.exposeInMainWorld('guardAPI', {
     ipcRenderer.removeAllListeners('system:background-pc-scan-finished');
     ipcRenderer.on('system:background-pc-scan-finished', (_event, report) => callback(report));
   },
+  onRealtimeThreatAlert: (callback) => {
+    ipcRenderer.removeAllListeners('guard:realtime-threat-alert');
+    ipcRenderer.on('guard:realtime-threat-alert', (_event, alert) => callback(alert));
+  },
 
   // Scanner Orchestration
   startScan: (options) => ipcRenderer.invoke('scanner:start-scan', options),
@@ -83,5 +87,6 @@ contextBridge.exposeInMainWorld('guardAPI', {
 
   // Export & Remediation
   exportReport: (options) => ipcRenderer.invoke('report:export', options),
-  autoCleanThreat: (threat) => ipcRenderer.invoke('threat:auto-clean', threat)
+  autoCleanThreat: (threat) => ipcRenderer.invoke('threat:auto-clean', threat),
+  deleteThreat: (threat) => ipcRenderer.invoke('threat:delete', threat)
 });

@@ -6,6 +6,7 @@
     Built with Electron, Node.js & the native <code>guard</code> cybersecurity engine.
   </p>
   <p align="center">
+    <a href="https://ahasun-h.github.io/SecurityGuard/"><strong>🌐 Official Distribution Website</strong></a> •
     <a href="#-downloads--installers"><strong>Downloads</strong></a> •
     <a href="#-quick-start"><strong>Quick Start</strong></a> •
     <a href="#-core-features"><strong>Features</strong></a> •
@@ -13,6 +14,7 @@
     <a href="#-cli-guard-engine"><strong>Guard Engine</strong></a>
   </p>
   <p align="center">
+    <a href="https://ahasun-h.github.io/SecurityGuard/"><img src="https://img.shields.io/badge/website-live%20distribution-00f0ff?style=flat-square&logo=googlechrome" alt="Distribution Webpage"></a>
     <img src="https://img.shields.io/badge/version-1.0.0-06b6d4?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-10b981?style=flat-square" alt="Platform">
     <img src="https://img.shields.io/badge/architecture-Apple%20Silicon%20%7C%20Intel%20%7C%20x64-6366f1?style=flat-square" alt="Arch">
@@ -88,8 +90,8 @@ Run directly from source in development mode:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/Syed-Bipul-Rahman/Security-Guard.git
-cd Security-Guard/SecurityGuard
+git clone https://github.com/Ahasun-h/SecurityGuard.git
+cd SecurityGuard
 
 # 2. Install dependencies
 npm install
@@ -108,8 +110,19 @@ npm start
   - **Linux**: `systemd` background service (`guard.service`)
   - **Windows**: Windows Background Service & Process Monitor
 - Intercepts poisoned npm/PyPI dependencies, malicious dropper scripts (`api.js`, `node api.js`), and rogue tasks in real-time.
+- Automatically pushes native OS desktop notifications and feeds incidents live into the **Reports** tab.
 
-### 2. 🔍 Cross-Platform Application Signature & Integrity Check
+### 2. 💽 Dedicated Local Disk & Drive Scanning
+- Distinct from Git repository scans: targeted purely at physical storage drives, root volumes, user downloads, and installed applications.
+- Audits local directories for injected shellcodes, reverse-shell droppers, and backdoors without cloning or counting remote Git repositories.
+
+### 3. 🗑️ 1-Click Trojan & Malware Deletion (Move to Trash / Recycle Bin)
+- When a trojan, infected `.app` bundle, or tampered developer tool is detected (e.g. `/Applications/Visual Studio Code.app`), you can excise it instantly:
+  - Click **`🗑️ Delete Trojan (Move to Trash)`** directly on the threat card.
+  - Safely sends the malicious payload to macOS Trash or Windows Recycle Bin using native OS APIs.
+  - Automatically updates session telemetry counters and marks the threat neutralized.
+
+### 4. 🔍 Cross-Platform Application Signature & Integrity Check
 Strict cryptographic code signature and binary tamper detection for core developer tools:
 - **Visual Studio Code**:
   - macOS: `codesign --verify --deep --strict "/Applications/Visual Studio Code.app"`
@@ -120,26 +133,22 @@ Strict cryptographic code signature and binary tamper detection for core develop
   - Windows: `Get-AuthenticodeSignature "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe"`
   - Linux: Package integrity verification & SHA-256 hash checks
 
-### 3. 🚨 Host Persistence & Rootkit Triage (`guard triage`)
+### 5. 🚨 Host Persistence & Rootkit Triage (`guard triage`)
 - Audits system persistence vectors across reboot hooks:
   - macOS: `/Library/LaunchAgents`, `/Library/LaunchDaemons`, `~/Library/LaunchAgents`, and cron jobs
   - Linux: `/etc/systemd/system`, `/etc/cron.*`, and `/etc/ld.so.preload` rootkit hooks
   - Windows: Scheduled tasks, Registry Run/RunOnce keys, and WMI event persistence
 
-### 4. 🔑 Browser-Based GitHub OAuth & Smart Session Memory
+### 6. 🔑 Browser-Based GitHub OAuth & Smart Session Memory
 - Browser-based OAuth authorization flow or direct Personal Access Token.
 - **Incremental Sync**: Caches repositories in session memory and syncs live delta changes from servers.
 - **Fail-Safe Disconnect**: Logging out purges all cached tokens, repositories, and credentials.
 
-### 5. 📦 10-Repository Batch Scanning Engine
+### 7. 📦 10-Repository Batch Scanning Engine
 - Scans complete portfolios in controlled **10-repo segments** with shallow temporary sandboxes.
 - Prevents API rate-limiting and memory spikes, automatically compiling reports and advancing to subsequent batches.
 
-### 6. ⚡ Persistent Threat Neutralization
-- Surgical remediation right from the **Report screen** (`⚡ Neutralize Threat`).
-- Remediated threats update to `🛡️ Neutralized • Saved in Session`, threat counters decrement in real-time, and states persist across app reloads.
-
-### 7. 🤖 Multi-Model AI Threat Intelligence Copilot
+### 8. 🤖 Multi-Model AI Threat Intelligence Copilot
 - Integrates with leading AI providers:
   - **Google Gemini** (`gemini-1.5-flash`, `gemini-1.5-pro`)
   - **OpenAI** (`gpt-4o`, `gpt-4o-mini`)

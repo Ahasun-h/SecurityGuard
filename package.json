@@ -14,7 +14,8 @@
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "fix:mac": "bash fix-mac.sh"
   },
   "keywords": [
     "security",
@@ -37,6 +38,8 @@
   "build": {
     "appId": "com.securityguard.defensehub",
     "productName": "Security Guard",
+    "afterPack": "build/afterPack.js",
+    "afterSign": "build/notarize.js",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -52,6 +55,10 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
       "target": [
         {
           "target": "dmg",
@@ -71,6 +78,8 @@
     },
     "win": {
       "icon": "build/icon.ico",
+      "publisherName": "Security Guard Team",
+      "requestedExecutionLevel": "asInvoker",
       "target": [
         {
           "target": "nsis",
@@ -90,7 +99,9 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName} Setup ${version}.${ext}",
+      "runAfterFinish": true
     },
     "linux": {
       "icon": "build/icon.png",

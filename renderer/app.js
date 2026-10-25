@@ -162,14 +162,25 @@ function markThreatNeutralized(repoTarget, findingWhere) {
       }
       if (Array.isArray(rep.localScanned)) {
         rep.localScanned.forEach(l => {
-          if (l.path === repoTarget) {
+          const matchTarget = (l.path === repoTarget || l.name === repoTarget || (findingWhere && (l.path === findingWhere || findingWhere.includes(l.path) || l.path.includes(findingWhere))));
+          if (matchTarget) {
             if (Array.isArray(l.findings)) {
               l.findings.forEach(f => {
-                f.neutralized = true;
-                f.neutralizedAt = new Date().toISOString();
+                const w = (f.detail && (f.detail.where || f.detail.fullPath)) || f.where;
+                if (!findingWhere || w === findingWhere || l.findings.length === 1) {
+                  f.neutralized = true;
+                  f.neutralizedAt = new Date().toISOString();
+                  if (f.detail && typeof f.detail === 'object') {
+                    f.detail.neutralized = true;
+                    f.detail.neutralizedAt = f.neutralizedAt;
+                  }
+                }
               });
             }
-            l.status = 'clean';
+            const stillActive = (l.findings || []).some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+            if (!stillActive) {
+              l.status = 'clean';
+            }
           }
         });
       }
@@ -246,17 +257,22 @@ function getAggregatedSessionReport() {
     }
   });
 
+  const hasRepos = scannedFullNames.length > 0;
+  const localInfected = localScanned.filter(l => l.status === 'infected' && (l.findings || []).some(f => !f.neutralized && !(f.detail && f.detail.neutralized))).length;
+  const localClean = localScanned.length - localInfected;
+
   return {
     startedAt: session.lastUpdated || new Date().toISOString(),
     finishedAt: session.lastUpdated || new Date().toISOString(),
-    totalTargets: appState.repos.length + localScanned.length,
-    scannedCount: scannedFullNames.length + localScanned.length,
-    threatsFound: infectedCount + localScanned.filter(l => l.status === 'infected').length,
+    totalTargets: hasRepos ? (appState.repos.length + localScanned.length) : localScanned.length,
+    scannedCount: hasRepos ? (scannedFullNames.length + localScanned.length) : localScanned.length,
+    threatsFound: infectedCount + localInfected,
     reposScanned: reposScanned,
     localScanned: localScanned,
+    isLocalOnly: !hasRepos,
     summary: {
-      clean: cleanCount + localScanned.filter(l => l.status === 'clean').length,
-      infected: infectedCount + localScanned.filter(l => l.status === 'infected').length,
+      clean: cleanCount + localClean,
+      infected: infectedCount + localInfected,
       warnings: 0,
       categories: {
         vscode: 0,
@@ -1137,15 +1153,22 @@ async function startScanPipeline(options) {
   logs.innerHTML = '';
   bar.style.width = '0%';
   percentTxt.textContent = '0%';
-  countTxt.textContent = '0 Targets';
-  targetLabel.textContent = 'Initializing Batch Scan Engine (10 repos per batch)...';
-  modal.classList.add('active');
 
   const githubRepos = options.githubRepos || [];
   const localPaths = options.localPaths || Array.from(appState.selectedLocalPaths);
   const scanLocalPc = options.scanLocalPc !== false;
   const isAvEnabled = document.getElementById('chkFilterAv') ? document.getElementById('chkFilterAv').checked : true;
-  const isGitDeep = document.getElementById('chkFilterGit') ? document.getElementById('chkFilterGit').checked : false;
+  const isGitDeep = options.scanMode === 'disk' ? false : (document.getElementById('chkFilterGit') ? document.getElementById('chkFilterGit').checked : false);
+  const isDiskScanOnly = options.scanMode === 'disk' || (githubRepos.length === 0 && localPaths.length > 0);
+
+  if (isDiskScanOnly) {
+    targetLabel.textContent = `Inspecting Local Disk (${localPaths.join(', ')}) for Injected Malware & Trojans...`;
+    countTxt.textContent = `${localPaths.length} Disk Target(s)`;
+  } else {
+    targetLabel.textContent = 'Initializing Batch Scan Engine (10 repos per batch)...';
+    countTxt.textContent = `${githubRepos.length} Repos`;
+  }
+  modal.classList.add('active');
 
   // Breakdown GitHub Repos into batches of 10
   const BATCH_SIZE = 10;
@@ -1175,19 +1198,40 @@ async function startScanPipeline(options) {
 
     // 1. Scan Local Workstation First if enabled
     if (scanLocalPc && localPaths.length > 0 && !shouldStopScanPipeline) {
-      targetLabel.textContent = 'Inspecting Local Workstation Filesystem...';
+      targetLabel.textContent = isDiskScanOnly 
+        ? `Inspecting Disk (${localPaths.join(', ')}) for Injected Malware & Rootkits...` 
+        : 'Inspecting Local Workstation Filesystem...';
+      bar.style.width = isDiskScanOnly ? '60%' : '10%';
+      percentTxt.textContent = isDiskScanOnly ? '60%' : '10%';
+
       const localReport = await window.guardAPI.startScan({
         githubRepos: [],
         localPaths,
         scanLocalPc: true,
         runAntivirus: isAvEnabled,
-        deepGitScan: isGitDeep
+        deepGitScan: false, // Never scan git commit history during disk scan
+        scanMode: isDiskScanOnly ? 'disk' : 'standard'
       });
       if (localReport) {
+        localReport.scanType = isDiskScanOnly ? 'disk_scan' : 'workstation_scan';
+        localReport.diskPath = localPaths[0];
+        session.reports = (session.reports || []).filter(r => r.scanType !== localReport.scanType || r.diskPath !== localReport.diskPath);
         session.reports.push(localReport);
         saveAccountScanSession(session);
-        populateReportTab(getAggregatedSessionReport());
+        appState.lastScanReport = localReport;
+        populateReportTab(localReport);
       }
+    }
+
+    if (isDiskScanOnly) {
+      bar.style.width = '100%';
+      percentTxt.textContent = '100%';
+      targetLabel.textContent = 'Disk Scan Complete! Injected Malware & Trojan Triage Finished.';
+      const div = document.createElement('div');
+      div.className = 'success';
+      div.textContent = `[DISK SCAN COMPLETE] Audited local disk filesystem & applications. Git repos skipped.`;
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
     }
 
     // 2. Scan GitHub Repositories in Batches of 10
@@ -1271,7 +1315,11 @@ async function startScanPipeline(options) {
     setTimeout(() => {
       modal.classList.remove('active');
       switchView('view-reports');
-      populateReportTab(getAggregatedSessionReport());
+      if (isDiskScanOnly && appState.lastScanReport) {
+        populateReportTab(appState.lastScanReport);
+      } else {
+        populateReportTab(getAggregatedSessionReport());
+      }
     }, 1000);
 
   } catch (e) {
@@ -1293,14 +1341,23 @@ function populateReportTab(report) {
   const sumEl = document.getElementById('reportSessionSummaryTxt');
   const lastEl = document.getElementById('reportSessionLastScannedTxt');
 
-  if (tagEl) tagEl.textContent = `Active Session: @${session.account || 'Unknown'}`;
-  if (sumEl) sumEl.textContent = `Scan Session: ${effectiveReport.scannedCount || 0} of ${appState.repos.length} Repos Scanned (${session.reports ? session.reports.length : 0} Batches)`;
-  if (lastEl) lastEl.textContent = session.lastUpdated ? `Last Scan: ${formatRelativeTime(session.lastUpdated)}` : 'Last Scan: Never';
+  const reposScannedCount = (effectiveReport.reposScanned || []).length;
+  const isDiskOrLocalOnly = reposScannedCount === 0 || effectiveReport.scanType === 'disk_scan' || effectiveReport.isLocalOnly;
 
-  document.getElementById('statScannedCount').textContent = effectiveReport.scannedCount || 0;
-  document.getElementById('statThreatCount').textContent = effectiveReport.threatsFound || 0;
-  document.getElementById('statCleanCount').textContent = effectiveReport.summary ? effectiveReport.summary.clean : 0;
-  document.getElementById('statWarningsCount').textContent = effectiveReport.summary ? effectiveReport.summary.warnings : 0;
+  if (tagEl) {
+    tagEl.textContent = isDiskOrLocalOnly 
+      ? `Workstation Disk Protection Active` 
+      : `Active Session: @${session.account || 'Unknown'}`;
+  }
+  if (sumEl) {
+    if (isDiskOrLocalOnly) {
+      const localCount = (effectiveReport.localScanned && effectiveReport.localScanned.length) || effectiveReport.scannedCount || 1;
+      sumEl.textContent = `Local Disk Scan: ${localCount} Target(s) Audited • System Filesystem & Applications (No Git Repos)`;
+    } else {
+      sumEl.textContent = `Scan Session: ${reposScannedCount} of ${appState.repos.length} Repos Scanned (${session.reports ? session.reports.length : 0} Batches)`;
+    }
+  }
+  if (lastEl) lastEl.textContent = session.lastUpdated ? `Last Scan: ${formatRelativeTime(session.lastUpdated)}` : 'Last Scan: Never';
 
   const reportToRender = effectiveReport;
 
@@ -1318,6 +1375,23 @@ function populateReportTab(report) {
       findings: l.findings
     }))
   ];
+
+  let activeThreats = 0;
+  let cleanCount = 0;
+  allItems.forEach(item => {
+    const findingsList = item.findings || [];
+    const hasUnneutralized = findingsList.some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+    if (item.status === 'infected' && hasUnneutralized) {
+      activeThreats++;
+    } else {
+      cleanCount++;
+    }
+  });
+
+  document.getElementById('statScannedCount').textContent = allItems.length || effectiveReport.scannedCount || 0;
+  document.getElementById('statThreatCount').textContent = activeThreats;
+  document.getElementById('statCleanCount').textContent = cleanCount;
+  document.getElementById('statWarningsCount').textContent = effectiveReport.summary ? effectiveReport.summary.warnings : 0;
 
   const container = document.getElementById('reportFindingsList');
   if (allItems.length === 0) {
@@ -1362,14 +1436,21 @@ function populateReportTab(report) {
                 ${info.isNeutralized ? `
                   <div style="margin-top:8px;">
                     <span style="font-size:11px; font-weight:700; color:#1e7e51; background:#e6f6ee; padding:4px 10px; border-radius:var(--radius-pill); display:inline-flex; align-items:center; gap:5px;">
-                      🛡️ Neutralized • Saved in Session
+                      🛡️ Neutralized • Moved to Trash / Cleaned
                     </span>
                   </div>
                 ` : (info.isActionable ? `
-                  <div style="margin-top:8px;">
-                    <button class="btn-clean-action" data-repo="${item.title}" data-where="${info.where}" data-raw='${JSON.stringify(info.raw).replace(/'/g, "&apos;")}' style="background:var(--accent-yellow); color:var(--text-main); border:none; padding:5px 14px; border-radius:var(--radius-pill); font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-                      ⚡ Neutralize Threat
-                    </button>
+                  <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    ${info.isDeletable ? `
+                      <button class="btn-delete-trojan" data-repo="${item.title}" data-where="${info.where}" data-raw='${JSON.stringify(info.raw).replace(/'/g, "&apos;")}' style="background:#d64739; color:#ffffff; border:none; padding:6px 14px; border-radius:var(--radius-pill); font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(214,71,57,0.25);">
+                        🗑️ Delete Trojan (Move to Trash)
+                      </button>
+                    ` : ''}
+                    ${info.canSurgicalClean ? `
+                      <button class="btn-clean-action" data-repo="${item.title}" data-where="${info.where}" data-raw='${JSON.stringify(info.raw).replace(/'/g, "&apos;")}' style="background:var(--accent-yellow); color:var(--text-main); border:none; padding:6px 14px; border-radius:var(--radius-pill); font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                        ⚡ Neutralize Threat
+                      </button>
+                    ` : ''}
                   </div>
                 ` : '')}
               </div>
@@ -1380,6 +1461,38 @@ function populateReportTab(report) {
     </div>
   `;
   }).join('');
+
+  // Wire Delete Trojan buttons (Move to Native Trash / Quarantine)
+  container.querySelectorAll('.btn-delete-trojan').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const raw = JSON.parse(btn.getAttribute('data-raw') || '{}');
+      const repoTarget = btn.getAttribute('data-repo') || raw.where || raw.fullPath;
+      const findingWhere = btn.getAttribute('data-where') || raw.where || raw.fullPath;
+
+      const confirmMsg = `⚠️ Delete Infected Trojan / File?\n\nTarget: ${findingWhere || repoTarget}\n\nThis will safely move the infected item to the Trash. Proceed?`;
+      if (!confirm(confirmMsg)) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+
+      try {
+        const res = await window.guardAPI.deleteThreat(raw.where ? raw : { where: findingWhere, repoFullName: repoTarget });
+        if (res.success) {
+          markThreatNeutralized(repoTarget, findingWhere);
+          alert(res.message || 'Infected trojan successfully moved to Trash!');
+        } else {
+          btn.disabled = false;
+          btn.textContent = '🗑️ Delete Trojan (Move to Trash)';
+          alert('Could not delete: ' + (res.error || 'Unknown error'));
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '🗑️ Delete Trojan (Move to Trash)';
+        alert('Error deleting trojan: ' + err.message);
+      }
+    });
+  });
 
   // Wire auto-clean buttons to neutralize and persist to session
   container.querySelectorAll('.btn-clean-action').forEach(btn => {
@@ -1496,10 +1609,10 @@ function formatFinding(f) {
   } else if (category === 'AV') {
     title = 'Antivirus Signature Match';
   } else if (category === 'CODESIGN_TAMPERING' || category === 'CODESIGN') {
-    title = (typeof data === 'object' && data.title) || 'VS Code Application Binary Tampering';
+    title = (typeof data === 'object' && data.title) || 'VS Code Application Signature Invalid (Possible Trojan / Backdoor)';
     category = 'BINARY INTEGRITY';
     severity = 'CRITICAL';
-    isActionable = false;
+    isActionable = Boolean(where);
   }
 
   if (isNeutralized) {
@@ -1508,7 +1621,10 @@ function formatFinding(f) {
     isActionable = false;
   }
 
-  return { title, desc, where, category, severity, isActionable, isNeutralized, raw: typeof data === 'object' ? data : { where, desc } };
+  const isDeletable = isActionable && Boolean(where);
+  const canSurgicalClean = isActionable && Boolean(where) && !category.includes('CODESIGN') && !where.endsWith('.app');
+
+  return { title, desc, where, category, severity, isActionable, isDeletable, canSurgicalClean, isNeutralized, raw: typeof data === 'object' ? data : { where, desc } };
 }
 
 // 7. Event Listeners Setup
@@ -2348,5 +2464,55 @@ function renderAiMarkdown(markdown) {
     window.guardAPI.onNavigateToTab((tabName) => {
       const tabBtn = document.querySelector(`.dock-item[data-tab="${tabName}"]`);
       if (tabBtn) tabBtn.click();
+    });
+  }
+
+  // Receive Background PC Malware scan results automatically
+  if (window.guardAPI && window.guardAPI.onBackgroundPcScanFinished) {
+    window.guardAPI.onBackgroundPcScanFinished((report) => {
+      console.log('[SHIELD REPORT RECEIVED]', report);
+      ingestBackgroundScanReport(report);
+    });
+  }
+
+  // Receive Live Threat Interceptions from Continuous Background Daemon (guard watch)
+  if (window.guardAPI && window.guardAPI.onRealtimeThreatAlert) {
+    window.guardAPI.onRealtimeThreatAlert((alertData) => {
+      console.log('[LIVE THREAT ALERT RECEIVED]', alertData);
+      const session = getAccountScanSession();
+      if (!session.reports) session.reports = [];
+
+      const findings = (alertData.findings || []).map(f => ({
+        category: f.category || 'MALWARE_INTERCEPTED',
+        detail: {
+          severity: (f.severity || 'CRITICAL').toUpperCase(),
+          title: f.sig_id || 'Filesystem Malware Interception',
+          desc: f.desc || 'Real-time malicious code injection intercepted by background shield.',
+          where: f.where ? `${alertData.path}/${f.where}` : alertData.path,
+          actionable: true,
+          fullPath: f.where ? `${alertData.path}/${f.where}` : alertData.path
+        }
+      }));
+
+      const liveReport = {
+        startedAt: alertData.ts || new Date().toISOString(),
+        finishedAt: alertData.ts || new Date().toISOString(),
+        scanType: 'live_shield_interception',
+        totalTargets: 1,
+        scannedCount: 1,
+        threatsFound: findings.length,
+        reposScanned: [],
+        localScanned: [{
+          path: alertData.path,
+          name: `Real-time Shield Interception (${alertData.path.split(/[\\/]/).pop() || alertData.path})`,
+          type: 'filesystem_watcher',
+          status: 'infected',
+          findings: findings
+        }]
+      };
+
+      session.reports.unshift(liveReport);
+      saveAccountScanSession(session);
+      populateReportTab(getAggregatedSessionReport());
     });
   }

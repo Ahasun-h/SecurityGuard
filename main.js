@@ -114,6 +114,7 @@ app.whenReady().then(() => {
     } catch (_) {}
   }
   createWindow();
+  startLiveAlertsWatcher();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -1904,6 +1905,20 @@ async function executeBackgroundPcScan() {
     }
   }
 
+  // 4. Inspect Available Disks
+  const availableDisks = detectAvailableDisks();
+  for (const disk of availableDisks) {
+    cleanCount++;
+    localItems.push({
+      path: disk.path,
+      name: `${disk.name} (${disk.driveType.toUpperCase()} DISK)`,
+      type: 'storage_disk',
+      status: 'clean',
+      findings: [],
+      details: `${disk.freeFormatted} free of ${disk.totalFormatted} (${disk.usedPercent}% used)`
+    });
+  }
+
   const finishedAt = new Date().toISOString();
   const report = {
     startedAt,
@@ -1943,6 +1958,69 @@ async function executeBackgroundPcScan() {
 ipcMain.handle('system:run-background-pc-scan', async () => {
   return await executeBackgroundPcScan();
 });
+
+// Live watcher for ~/.guard/alerts.jsonl written by the continuous background daemon (guard watch)
+function startLiveAlertsWatcher() {
+  const alertsFile = path.join(CONFIG_DIR, 'alerts.jsonl');
+  let lastSize = 0;
+  if (fs.existsSync(alertsFile)) {
+    try {
+      lastSize = fs.statSync(alertsFile).size;
+    } catch (_) {}
+  }
+
+  fs.watchFile(alertsFile, { interval: 2000 }, (curr, prev) => {
+    if (curr.size > prev.size) {
+      try {
+        const stream = fs.createReadStream(alertsFile, {
+          start: prev.size,
+          end: curr.size,
+          encoding: 'utf8'
+        });
+        let buffer = '';
+        stream.on('data', chunk => { buffer += chunk; });
+        stream.on('end', () => {
+          const lines = buffer.trim().split('\n').filter(Boolean);
+          for (const line of lines) {
+            try {
+              const alertData = JSON.parse(line);
+              console.log('[SHIELD LIVE ALERT INTERCEPTED]', alertData);
+
+              // 1. Send native desktop notification
+              if (Notification.isSupported()) {
+                const fCount = (alertData.findings || []).length;
+                const firstDesc = (alertData.findings && alertData.findings[0] && alertData.findings[0].desc) || 'Malicious pattern intercepted';
+                const firstWhere = (alertData.findings && alertData.findings[0] && alertData.findings[0].where) || alertData.path;
+
+                const notif = new Notification({
+                  title: '🚨 Security Guard: Live Malware Intercepted!',
+                  body: `${firstDesc} at ${firstWhere} (${fCount} threat(s)). Click to view Report.`,
+                  icon: path.join(__dirname, 'assets', 'icon.png')
+                });
+                notif.on('click', () => {
+                  if (mainWindow) {
+                    if (mainWindow.isMinimized()) mainWindow.restore();
+                    mainWindow.show();
+                    mainWindow.focus();
+                    mainWindow.webContents.send('navigate-to-tab', 'reports');
+                  }
+                });
+                notif.show();
+              }
+
+              // 2. Relay alert to renderer to update the Reports screen in real-time
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('guard:realtime-threat-alert', alertData);
+              }
+            } catch (_) {}
+          }
+        });
+      } catch (e) {
+        console.warn('Error reading alerts.jsonl:', e);
+      }
+    }
+  });
+}
 
 function formatBytes(bytes) {
   if (!bytes || bytes <= 0) return '0 B';
@@ -3118,8 +3196,12 @@ ipcMain.handle('threat:auto-clean', async (event, threat) => {
       return { success: false, error: `Target file path does not exist on disk: ${filePath}` };
     }
 
-    // If it's a directory
+    // If it's a directory or macOS .app bundle
     if (fs.statSync(filePath).isDirectory()) {
+      if (filePath.endsWith('.app')) {
+        await shell.trashItem(filePath);
+        return { success: true, message: `Moved tampered application bundle to Trash: ${path.basename(filePath)}` };
+      }
       const res = disinfectLocalDirectory(filePath, { isRemote: false });
       return { success: true, message: `Disinfected directory! Cleaned ${res.cleanedCount} file(s).` };
     }
@@ -3205,6 +3287,52 @@ ipcMain.handle('threat:auto-clean', async (event, threat) => {
     }
 
     return { success: false, error: 'Automatic surgical remediation not available for this signature.' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 12B. Delete / Move Infected Trojan to Trash (App Bundles, Trojans, Droppers, Malicious Files)
+ipcMain.handle('threat:delete', async (event, threat) => {
+  try {
+    if (!threat) return { success: false, error: 'No threat metadata provided.' };
+
+    let targetPath = threat.where || threat.fullPath || threat.path;
+    if (!targetPath && threat.detail && typeof threat.detail === 'object') {
+      targetPath = threat.detail.where || threat.detail.fullPath || threat.detail.path;
+    }
+
+    if (!targetPath) {
+      return { success: false, error: 'Could not determine file path of the target threat.' };
+    }
+
+    if (!fs.existsSync(targetPath)) {
+      return { success: false, error: `Target path does not exist on disk: ${targetPath}` };
+    }
+
+    const baseName = path.basename(targetPath);
+    try {
+      await shell.trashItem(targetPath);
+      return { 
+        success: true, 
+        message: `Successfully moved infected trojan to Trash: ${baseName}`,
+        targetPath,
+        trashed: true
+      };
+    } catch (trashErr) {
+      const stat = fs.statSync(targetPath);
+      if (stat.isDirectory()) {
+        fs.rmSync(targetPath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(targetPath);
+      }
+      return { 
+        success: true, 
+        message: `Permanently removed infected item: ${baseName}`,
+        targetPath,
+        deleted: true
+      };
+    }
   } catch (err) {
     return { success: false, error: err.message };
   }

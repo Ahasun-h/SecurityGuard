@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Guard Desktop — Cyber Defense, Host Integrity & Supply-Chain Protection</title>
+  <meta name="description" content="Official distribution website for Security Guard Desktop. Download for macOS, Windows, and Linux with full installation guides and usage documentation.">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand">
+        <img src="assets/icon.png" alt="Security Guard" class="brand-icon">
+        <span class="brand-name">Security Guard</span>
+        <span class="brand-badge">v1.0.0</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features" class="nav-link">Features</a></li>
+        <li><a href="#downloads" class="nav-link">Downloads</a></li>
+        <li><a href="#installation" class="nav-link">Installation</a></li>
+        <li><a href="#usage" class="nav-link">How to Use</a></li>
+        <li><a href="#faq" class="nav-link">FAQ</a></li>
+        <li>
+          <a href="https://github.com/Ahasun-h/SecurityGuard" target="_blank" rel="noopener" class="btn-github">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-pill">
+        🛡️ Continuous Background Malware & Supply-Chain Shield
+      </div>
+      <h1 class="hero-title">
+        The Open-Source Security Center for <br>
+        <span class="text-gradient">Developers & Workstations</span>
+      </h1>
+      <p class="hero-desc">
+        Real-time filesystem monitoring, pure disk malware triage, 1-click trojan neutralization, and deep supply-chain threat hunting with 100% local data sovereignty.
+      </p>
+      <div class="hero-actions">
+        <a href="#downloads" id="heroDownloadBtn" class="btn-primary">
+          <span>⬇️</span> Download Security Guard
+        </a>
+        <a href="#installation" class="btn-secondary">
+          <span>📖</span> Installation Guide
+        </a>
+      </div>
+
+      <!-- APP PREVIEW MOCKUP -->
+      <div class="hero-mockup-wrapper">
+        <div class="hero-mockup">
+          <div class="mockup-header">
+            <span class="mockup-dot dot-red"></span>
+            <span class="mockup-dot dot-yellow"></span>
+            <span class="mockup-dot dot-green"></span>
+            <span class="mockup-title">Security Guard Desktop // Defense Hub &bull; Background Shield Active</span>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-grid">
+              <div class="mockup-card">
+                <div class="mockup-card-head">
+                  <span style="font-size:12px; font-weight:700; color:#38bdf8;">🟢 CONTINUOUS SHIELD</span>
+                  <span class="mockup-badge badge-clean">ACTIVE DAEMON</span>
+                </div>
+                <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Kernel & Filesystem Watcher</div>
+                <p style="font-size:11px; color:#94a3b8;">Continuously intercepting droppers, backdoors, and poisoned packages in real-time across Mac, Windows & Linux.</p>
+              </div>
+
+              <div class="mockup-card">
+                <div class="mockup-card-head">
+                  <span style="font-size:12px; font-weight:700; color:#cbd5e1;">💾 LOCAL DISK SCANNER</span>
+                  <span class="mockup-badge badge-clean">INDEPENDENT</span>
+                </div>
+                <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Pure Drive Malware Audit</div>
+                <p style="font-size:11px; color:#94a3b8;">Scans internal SSDs, APFS/NTFS volumes, and USB drives for malware without scanning Git repositories.</p>
+              </div>
+
+              <div class="mockup-card">
+                <div class="mockup-card-head">
+                  <span style="font-size:12px; font-weight:700; color:#f43f5e;">⚠️ THREAT NEUTRALIZER</span>
+                  <span class="mockup-badge badge-infected">1-CLICK TRASH</span>
+                </div>
+                <div style="font-size:13px; font-weight:700; margin-bottom:4px;">1-Click Trojan Deletion</div>
+                <p style="font-size:11px; color:#94a3b8;">Safely moves compromised app binaries, info-stealers, and infected scripts to native Trash with one click.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS BAR -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Background Filesystem Shield</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Local Data Sovereignty (0 Leaks)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">1-Click</div>
+          <div class="stat-label">Trojan & Malware Deletion</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">3 OS</div>
+          <div class="stat-label">macOS &bull; Windows &bull; Linux</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES SECTION -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Powerful Capabilities</span>
+        <h2 class="section-title">Built to Protect Developers & Workstations</h2>
+        <p class="section-sub">Engineered to detect and eliminate modern cyber threats, Lazarus/BeaverTail infostealers, and host tampering.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-box">🛡️</div>
+          <h3 class="feature-title">Continuous Background Shield</h3>
+          <p class="feature-desc">Always-on OS-native daemon (<code>guard watch</code>) that intercepts droppers, backdoor scripts, and poisoned dependencies the moment they touch your drive.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">💾</div>
+          <h3 class="feature-title">Pure Local Disk Scanner</h3>
+          <p class="feature-desc">Scan any mounted storage drive, system partition, or USB volume for injected malware and rootkits without triggering unwanted Git repository scans.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">🗑️</div>
+          <h3 class="feature-title">1-Click Trojan Deletion</h3>
+          <p class="feature-desc">Instantly move infected app bundles, modified binaries, and malicious files to the native Trash/Recycle Bin directly from the Audit Breakdown screen.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">🔍</div>
+          <h3 class="feature-title">Application Binary Integrity Check</h3>
+          <p class="feature-desc">Performs strict code-signing and certificate verification on Visual Studio Code and Antigravity IDE to catch trojanized developer tools.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">🔔</div>
+          <h3 class="feature-title">Real-Time Native Alerts</h3>
+          <p class="feature-desc">Receives instant desktop notifications the second a threat is intercepted. Clicking the notification focuses the app and opens the full forensic report.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">🤖</div>
+          <h3 class="feature-title">AI Remediation Copilot</h3>
+          <p class="feature-desc">Powered by Gemini or local Ollama to evaluate audit telemetry and generate actionable step-by-step risk remediation playbooks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOADS SECTION -->
+  <section class="section" id="downloads">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Direct Downloads</span>
+        <h2 class="section-title">Get Security Guard for Your System</h2>
+        <p class="section-sub">Free, open-source, and pre-compiled binaries for macOS, Windows, and Linux.</p>
+      </div>
+
+      <div class="downloads-grid">
+        <!-- macOS CARD -->
+        <div class="download-card" id="card-mac">
+          <div class="card-top">
+            <span class="os-icon">🍏</span>
+            <div>
+              <h3 class="os-name">macOS</h3>
+              <span class="os-arch">Apple Silicon & Intel &bull; macOS 11+</span>
+            </div>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); margin-bottom:18px;">Recommended for MacBook Pro/Air, Mac Studio, Mac mini, and iMac.</p>
+          <div class="download-buttons-stack">
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard-1.0.0-arm64.dmg" class="btn-download-main">
+              <span>⬇️</span> Download .DMG (Apple Silicon M1/M2/M3/M4)
+            </a>
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard-1.0.0.dmg" class="btn-download-sub">
+              Download .DMG (Intel x64)
+            </a>
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard-1.0.0-arm64-mac.zip" class="btn-download-sub">
+              Download Standalone .ZIP
+            </a>
+          </div>
+        </div>
+
+        <!-- WINDOWS CARD -->
+        <div class="download-card" id="card-win">
+          <div class="card-top">
+            <span class="os-icon">🪟</span>
+            <div>
+              <h3 class="os-name">Windows</h3>
+              <span class="os-arch">Windows 10 / Windows 11 (64-bit)</span>
+            </div>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); margin-bottom:18px;">Complete installer with desktop shortcuts and continuous background service.</p>
+          <div class="download-buttons-stack">
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard.Setup.1.0.0.exe" class="btn-download-main">
+              <span>⬇️</span> Download Setup (.EXE Installer)
+            </a>
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard.1.0.0.exe" class="btn-download-sub">
+              Download Portable (.EXE)
+            </a>
+          </div>
+        </div>
+
+        <!-- LINUX CARD -->
+        <div class="download-card" id="card-linux">
+          <div class="card-top">
+            <span class="os-icon">🐧</span>
+            <div>
+              <h3 class="os-name">Linux</h3>
+              <span class="os-arch">Ubuntu, Debian, Fedora, Arch</span>
+            </div>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); margin-bottom:18px;">Universal AppImage runs on all distributions, plus native Debian/Ubuntu package.</p>
+          <div class="download-buttons-stack">
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/Security.Guard-1.0.0.AppImage" class="btn-download-main">
+              <span>⬇️</span> Download .AppImage (Universal)
+            </a>
+            <a href="https://github.com/Ahasun-h/SecurityGuard/releases/download/v1.0.0/security-guard_1.0.0_amd64.deb" class="btn-download-sub">
+              Download .DEB Package
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALLATION GUIDE SECTION -->
+  <section class="section" id="installation">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Step-by-Step Guide</span>
+        <h2 class="section-title">Installation Instructions</h2>
+        <p class="section-sub">Detailed instructions to install and bypass macOS Gatekeeper or Windows SmartScreen warnings.</p>
+      </div>
+
+      <!-- OS TABS -->
+      <div class="install-tabs">
+        <button class="tab-btn active" data-tab="mac">🍏 macOS</button>
+        <button class="tab-btn" data-tab="win">🪟 Windows</button>
+        <button class="tab-btn" data-tab="linux">🐧 Linux</button>
+      </div>
+
+      <!-- TAB CONTENT: MAC -->
+      <div class="tab-pane active" id="tab-mac">
+        <div class="guide-box">
+          <div class="guide-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4 class="step-title">Download & Mount the .DMG</h4>
+              <p class="step-desc">Open the downloaded <code>Security.Guard-1.0.0-arm64.dmg</code> (or Intel version) and drag <strong>Security Guard</strong> into your <strong>Applications</strong> folder.</p>
+            </div>
+          </div>
+
+          <div class="guide-step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4 class="step-title">Fix macOS Gatekeeper ("Damaged & Can't Be Opened" Warning)</h4>
+              <p class="step-desc">Because Security Guard is an open-source binary distributed outside the Mac App Store, macOS attaches a quarantine flag. Open <strong>Terminal</strong> and run this 1-line command:</p>
+              
+              <div class="code-box">
+                <code>xattr -cr "/Applications/Security Guard.app"</code>
+                <button class="btn-copy" data-copy="xattr -cr &quot;/Applications/Security Guard.app&quot;">Copy Command</button>
+              </div>
+
+              <div class="callout callout-info" style="margin-top:14px;">
+                <span>💡</span>
+                <div>
+                  <strong>Alternative GUI Method (No Terminal):</strong><br>
+                  Open <strong>System Settings</strong> &rarr; <strong>Privacy & Security</strong> &rarr; scroll to <strong>Security</strong> &rarr; click <strong>"Open Anyway"</strong> next to Security Guard.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-step" style="margin-bottom:0;">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4 class="step-title">Launch Application</h4>
+              <p class="step-desc">Double-click <strong>Security Guard</strong> in Applications. The continuous background shield and host telemetry automatically initialize.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: WINDOWS -->
+      <div class="tab-pane" id="tab-win">
+        <div class="guide-box">
+          <div class="guide-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4 class="step-title">Download & Run Installer</h4>
+              <p class="step-desc">Download <code>Security.Guard.Setup.1.0.0.exe</code> and double-click to start installation.</p>
+            </div>
+          </div>
+
+          <div class="guide-step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4 class="step-title">Bypass Windows SmartScreen ("Windows protected your PC")</h4>
+              <p class="step-desc">Because this is an open-source community tool without an expensive corporate EV certificate, Microsoft Defender SmartScreen displays a warning.</p>
+              
+              <div class="callout callout-warning">
+                <span>🛡️</span>
+                <div>
+                  <strong>How to Continue Installation:</strong><br>
+                  1. On the blue/red SmartScreen dialog, click <strong>"More info"</strong>.<br>
+                  2. Click the <strong>"Run anyway"</strong> button at the bottom.<br><br>
+                  <em>Or Right-click the .exe &rarr; <strong>Properties</strong> &rarr; check <strong>Unblock</strong> at bottom &rarr; click <strong>OK</strong>.</em>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-step" style="margin-bottom:0;">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4 class="step-title">Complete Setup</h4>
+              <p class="step-desc">Choose your install path, finish installation, and Security Guard will launch with desktop shortcuts created.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: LINUX -->
+      <div class="tab-pane" id="tab-linux">
+        <div class="guide-box">
+          <div class="guide-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4 class="step-title">Make AppImage Executable</h4>
+              <p class="step-desc">Download <code>Security.Guard-1.0.0.AppImage</code>, then open terminal and mark it executable:</p>
+              
+              <div class="code-box">
+                <code>chmod +x Security.Guard-1.0.0.AppImage &amp;&amp; ./Security.Guard-1.0.0.AppImage</code>
+                <button class="btn-copy" data-copy="chmod +x Security.Guard-1.0.0.AppImage &amp;&amp; ./Security.Guard-1.0.0.AppImage">Copy</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-step" style="margin-bottom:0;">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4 class="step-title">Or Install via .DEB (Ubuntu / Debian)</h4>
+              <p class="step-desc">Install natively via dpkg:</p>
+              
+              <div class="code-box">
+                <code>sudo dpkg -i security-guard_1.0.0_amd64.deb</code>
+                <button class="btn-copy" data-copy="sudo dpkg -i security-guard_1.0.0_amd64.deb">Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW TO USE SECTION -->
+  <section class="section" id="usage">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">User Workflow</span>
+        <h2 class="section-title">How to Use Security Guard</h2>
+        <p class="section-sub">Simple 4-step workflow to safeguard your workstation and codebase.</p>
+      </div>
+
+      <div class="process-grid">
+        <div class="process-card">
+          <div class="process-step-badge">STEP 01</div>
+          <h3 class="feature-title">Launch App &amp; Auto-Shield</h3>
+          <p class="feature-desc">When you launch the app, the continuous background filesystem watcher (<code>guard watch</code>) and silent PC malware scan automatically activate.</p>
+        </div>
+
+        <div class="process-card">
+          <div class="process-step-badge">STEP 02</div>
+          <h3 class="feature-title">Scan Local Disks</h3>
+          <p class="feature-desc">Navigate to the <strong>Local PC</strong> tab, view detected physical/logical drives, and click <strong>"Scan Disk"</strong> to audit for injected malware without scanning Git repos.</p>
+        </div>
+
+        <div class="process-card">
+          <div class="process-step-badge">STEP 03</div>
+          <h3 class="feature-title">Audit GitHub Codebases</h3>
+          <p class="feature-desc">Connect via the GitHub tab to scan private/public repositories for BeaverTail droppers, poisoned dependencies, and unauthorized collaborators.</p>
+        </div>
+
+        <div class="process-card">
+          <div class="process-step-badge">STEP 04</div>
+          <h3 class="feature-title">1-Click Trojan Deletion</h3>
+          <p class="feature-desc">Review your findings in the <strong>Reports</strong> tab. Click <strong>"🗑️ Delete Trojan (Move to Trash)"</strong> to eliminate compromised files immediately.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ SECTION -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">Frequently Asked Questions</span>
+        <h2 class="section-title">Common Questions &amp; Answers</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Why does macOS say "Security Guard is damaged and can't be opened"?</span>
+            <span class="faq-icon">&darr;</span>
+          </button>
+          <div class="faq-answer">
+            This is Apple's standard Gatekeeper behavior for open-source applications downloaded from web browsers outside the Mac App Store. The file is NOT damaged. Run <code>xattr -cr "/Applications/Security Guard.app"</code> in your Terminal or click "Open Anyway" in macOS System Settings &rarr; Privacy &amp; Security.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Why does Windows SmartScreen display "Windows protected your PC"?</span>
+            <span class="faq-icon">&darr;</span>
+          </button>
+          <div class="faq-answer">
+            Because Security Guard is a free community tool without a commercial EV certificate ($500+/yr). Windows SmartScreen flags unknown publishers by default. Simply click <strong>"More info"</strong> and then click <strong>"Run anyway"</strong>.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Does any code, telemetry, or file data leave my local machine?</span>
+            <span class="faq-icon">&darr;</span>
+          </button>
+          <div class="faq-answer">
+            <strong>Never.</strong> Security Guard operates with complete local data sovereignty. Scans, YARA heuristics, and persistence triage run locally. If you use AI remediation, prompts are sent only to your chosen provider (Google Gemini or local Ollama).
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How does the 1-click Trojan Deletion work?</span>
+            <span class="faq-icon">&darr;</span>
+          </button>
+          <div class="faq-answer">
+            When an infected file, modified binary, or backdoor script is detected, the Report card displays a red "Delete Trojan" button. Clicking it safely moves the item into your operating system's native Trash / Recycle Bin via OS APIs, immediately neutralizing the threat.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:12px;">
+        <img src="assets/icon.png" alt="Icon" width="28" height="28" style="border-radius:6px;">
+        <strong style="color:var(--text-main); font-size:16px;">Security Guard Desktop</strong>
+      </div>
+      <p>Open-Source Cyber Defense, Host Integrity &amp; Supply-Chain Protection.</p>
+      <ul class="footer-links">
+        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="#installation">Installation Guide</a></li>
+        <li><a href="#usage">How to Use</a></li>
+        <li><a href="https://github.com/Ahasun-h/SecurityGuard" target="_blank" rel="noopener">GitHub Repository</a></li>
+        <li><a href="https://github.com/Ahasun-h/SecurityGuard/releases" target="_blank" rel="noopener">Release Notes</a></li>
+      </ul>
+      <p style="font-size:12px;">Released under the MIT License &bull; Created by <a href="https://github.com/Ahasun-h" target="_blank" rel="noopener" style="color:var(--primary); text-decoration:none;">Ahasun Habib</a></p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
