@@ -78,7 +78,6 @@
     },
     "win": {
       "icon": "build/icon.ico",
-      "publisherName": "Security Guard Team",
       "requestedExecutionLevel": "asInvoker",
       "target": [
         {
