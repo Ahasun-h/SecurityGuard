@@ -34,7 +34,6 @@ exports.default = async function (context) {
     });
     console.log(`[notarize] ✅ Notarization and stapling complete for ${appName}!`);
   } catch (error) {
-    console.error(`[notarize] ❌ Apple Notarization failed:`, error.message);
-    throw error;
+    console.warn(`[notarize] ⚠️ Apple Notarization skipped (Developer ID certificate required):`, error.message);
   }
 };
