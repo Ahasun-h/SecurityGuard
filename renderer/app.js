@@ -1284,14 +1284,18 @@ async function startScanPipeline(options) {
         saveAccountScanSession(session);
 
         // LIVE UPDATE: Generate/Update Report in real-time
-        const currentAggReport = getAggregatedSessionReport();
-        appState.lastScanReport = currentAggReport;
-        populateReportTab(currentAggReport);
+        try {
+          const currentAggReport = getAggregatedSessionReport();
+          appState.lastScanReport = currentAggReport;
+          populateReportTab(currentAggReport);
 
-        // LIVE UPDATE: Update Dashboard Repos Badges & Counts
-        updateRepoCounts();
-        renderDashboardPillCards();
-        renderGitHubFullGrid();
+          // LIVE UPDATE: Update Dashboard Repos Badges & Counts
+          updateRepoCounts();
+          renderDashboardPillCards();
+          renderGitHubFullGrid();
+        } catch (uiErr) {
+          console.warn('[SCAN LIVE REPORT UI WARN]', uiErr);
+        }
 
         // Telemetry log in modal
         const logDiv = document.createElement('div');
@@ -1380,7 +1384,7 @@ function populateReportTab(report) {
   let cleanCount = 0;
   allItems.forEach(item => {
     const findingsList = item.findings || [];
-    const hasUnneutralized = findingsList.some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+    const hasUnneutralized = findingsList.some(f => f && !f.neutralized && !(f.detail && f.detail.neutralized));
     if (item.status === 'infected' && hasUnneutralized) {
       activeThreats++;
     } else {
@@ -1401,7 +1405,7 @@ function populateReportTab(report) {
 
   container.innerHTML = allItems.map((item, itemIdx) => {
     const findingsList = item.findings || [];
-    const hasUnneutralized = findingsList.some(f => !f.neutralized && !(f.detail && f.detail.neutralized));
+    const hasUnneutralized = findingsList.some(f => f && !f.neutralized && !(f.detail && f.detail.neutralized));
     const isCleanOrNeutralized = item.status === 'clean' || (!hasUnneutralized && findingsList.length > 0);
     const badgeColor = isCleanOrNeutralized ? '#1e7e51' : '#d64739';
     const badgeBg = isCleanOrNeutralized ? '#e6f6ee' : '#fdeae8';
@@ -1525,23 +1529,87 @@ function populateReportTab(report) {
 }
 
 function formatFinding(f) {
-  let data = f.detail;
+  if (!f) {
+    return {
+      title: 'Security Finding',
+      desc: 'Anomaly detected during scan.',
+      where: '',
+      category: 'THREAT',
+      severity: 'HIGH',
+      isActionable: false,
+      isDeletable: false,
+      canSurgicalClean: false,
+      isNeutralized: false,
+      raw: {}
+    };
+  }
+
+  // Handle plain string finding
+  if (typeof f === 'string') {
+    return {
+      title: 'Malware Pattern Match',
+      desc: f,
+      where: '',
+      category: 'THREAT',
+      severity: 'HIGH',
+      isActionable: false,
+      isDeletable: false,
+      canSurgicalClean: false,
+      isNeutralized: false,
+      raw: { desc: f }
+    };
+  }
+
+  // Safely resolve data object
+  let data = (f.detail !== undefined && f.detail !== null) ? f.detail : f;
   if (typeof data === 'string') {
     try {
-      data = JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed === 'object') {
+        data = parsed;
+      }
     } catch (_) {}
   }
 
-  const isNeutralized = Boolean(f.neutralized || (typeof data === 'object' && data.neutralized));
-  let title = 'Security Anomaly';
-  let desc = typeof data === 'string' ? data : (data.desc || data.details || JSON.stringify(data));
-  let where = typeof data === 'object' && data.where ? data.where : (typeof data === 'object' && data.fullPath ? data.fullPath : '');
-  let category = (f.category || (typeof data === 'object' && data.category) || 'THREAT').toUpperCase();
-  let severity = (typeof data === 'object' && data.severity) ? data.severity.toUpperCase() : 'HIGH';
-  let isActionable = Boolean(where || (typeof data === 'object' && data.fullPath));
+  const isNeutralized = Boolean(f.neutralized || (data && typeof data === 'object' && data.neutralized));
+  let title = (data && typeof data === 'object' && (data.title || data.name)) || (f.title || f.name) || 'Security Anomaly';
+  
+  let desc = 'Security anomaly detected in scanned artifact.';
+  if (typeof data === 'string') {
+    desc = data;
+  } else if (data && typeof data === 'object') {
+    desc = data.desc || data.description || data.details || data.summary || data.message || (data.name ? `Flagged: ${data.name}` : (typeof f === 'object' && (f.desc || f.description || f.details)) || JSON.stringify(data));
+  } else if (typeof f === 'object') {
+    desc = f.desc || f.description || f.details || f.message || 'Threat pattern detected';
+  }
+
+  let where = '';
+  if (data && typeof data === 'object') {
+    where = data.where || data.fullPath || data.path || data.file || '';
+  }
+  if (!where && typeof f === 'object') {
+    where = f.where || f.fullPath || f.path || f.file || '';
+  }
+
+  let category = 'THREAT';
+  if (f.category) {
+    category = String(f.category);
+  } else if (data && typeof data === 'object' && data.category) {
+    category = String(data.category);
+  }
+  category = category.toUpperCase();
+
+  let severity = 'HIGH';
+  if (data && typeof data === 'object' && data.severity) {
+    severity = String(data.severity).toUpperCase();
+  } else if (f.severity) {
+    severity = String(f.severity).toUpperCase();
+  }
+
+  let isActionable = Boolean(where);
 
   if (category === 'MALICIOUS_DEPS' || category === 'MALICIOUS-DEPENDENCY') {
-    if (data.type === 'dependency_audit' || data.packages) {
+    if (data && typeof data === 'object' && (data.type === 'dependency_audit' || data.packages)) {
       const count = data.count || (data.packages ? data.packages.length : 0);
       title = `Supply-Chain Advisory: ${count} Manifest References`;
       category = 'DEPENDENCY ADVISORY';
@@ -1550,8 +1618,8 @@ function formatFinding(f) {
 
       let pkgList = data.packages ? data.packages.slice(0, 8).map(p => `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid rgba(0,0,0,0.05); font-size:11px;">
-          <span>📦 <strong>${p.name}</strong> <span style="color:#747886; font-size:10px;">(installed: ${p.yourVersion})</span></span>
-          <span style="font-family:var(--font-mono); color:#a47d06; font-size:10px; background:#fef6dc; padding:2px 6px; border-radius:4px;">${p.manifest} &bull; range: ${p.maliciousRange}</span>
+          <span>📦 <strong>${p.name || 'package'}</strong> <span style="color:#747886; font-size:10px;">(installed: ${p.yourVersion || 'unknown'})</span></span>
+          <span style="font-family:var(--font-mono); color:#a47d06; font-size:10px; background:#fef6dc; padding:2px 6px; border-radius:4px;">${p.manifest || 'manifest'} &bull; range: ${p.maliciousRange || '*'}</span>
         </div>
       `).join('') : '';
 
@@ -1591,15 +1659,15 @@ function formatFinding(f) {
                 <div style="background:#ffffff; border:1px solid var(--border-light); border-radius:8px; padding:6px 10px;">${pkgList}</div>
                 <div style="margin-top:8px; font-size:11px; font-weight:700; color:var(--text-main);">Suggested action: Run <code>pnpm update --latest</code> or <code>npm audit fix</code></div>`;
       } else {
-        title = `Poisoned Package: ${data.name || 'malicious package'}`;
+        title = `Poisoned Package: ${(data && typeof data === 'object' && data.name) || 'malicious package'}`;
         category = 'MALICIOUS DEPENDENCY';
       }
     } else {
-      title = `Poisoned Package: ${data.name || 'malicious package'}`;
+      title = `Poisoned Package: ${(data && typeof data === 'object' && data.name) || 'malicious package'}`;
       category = 'MALICIOUS DEPENDENCY';
     }
   } else if (category === 'BEAVER_TAIL_DROPPER') {
-    title = `Lazarus / BeaverTail: ${data.name || 'Dropper Injection'}`;
+    title = `Lazarus / BeaverTail: ${(data && typeof data === 'object' && data.name) || 'Dropper Injection'}`;
     category = 'BEAVERTAIL DROPPER';
     severity = 'CRITICAL';
   } else if (category === 'VSCODE') {
@@ -1609,7 +1677,7 @@ function formatFinding(f) {
   } else if (category === 'AV') {
     title = 'Antivirus Signature Match';
   } else if (category === 'CODESIGN_TAMPERING' || category === 'CODESIGN') {
-    title = (typeof data === 'object' && data.title) || 'VS Code Application Signature Invalid (Possible Trojan / Backdoor)';
+    title = (data && typeof data === 'object' && data.title) || 'VS Code Application Signature Invalid (Possible Trojan / Backdoor)';
     category = 'BINARY INTEGRITY';
     severity = 'CRITICAL';
     isActionable = Boolean(where);
@@ -1624,7 +1692,18 @@ function formatFinding(f) {
   const isDeletable = isActionable && Boolean(where);
   const canSurgicalClean = isActionable && Boolean(where) && !category.includes('CODESIGN') && !where.endsWith('.app');
 
-  return { title, desc, where, category, severity, isActionable, isDeletable, canSurgicalClean, isNeutralized, raw: typeof data === 'object' ? data : { where, desc } };
+  return {
+    title,
+    desc: desc || 'Threat pattern detected',
+    where,
+    category,
+    severity,
+    isActionable,
+    isDeletable,
+    canSurgicalClean,
+    isNeutralized,
+    raw: (data && typeof data === 'object') ? data : { where, desc }
+  };
 }
 
 // 7. Event Listeners Setup
