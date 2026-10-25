@@ -92,25 +92,6 @@ Pre-built binaries and official packages for macOS, Windows, and Linux. Choose t
 
 ---
 
-## 🖥️ Security Guard Server Edition (Web View & Instant Email Alerts)
-
-A dedicated, lightweight daemon for cloud servers, VPS, and Linux hosts (Ubuntu, Debian, CentOS, RHEL, AWS EC2).
-
-### 🌟 Key Server Capabilities:
-- 🛡️ **Continuous Server Malware Shield**: Monitors `/var/www`, web applications, `/etc/cron.*`, and `/home` directories in real time for injected webshells, backdoors, reverse-shell scripts, and crypto-miners.
-- 📧 **Instant Email Alerts to Server Owner**: The moment an infected file or trojan is intercepted, an alert email is dispatched immediately to the server owner with infected file paths, malware names, and direct links.
-- 🌐 **Executive Web View Dashboard (`http://<SERVER_IP>:8888`)**: View live server telemetry, resource loads (CPU/RAM), threat incident logs, and trigger on-demand forensic scans directly from any web browser.
-- ⚡ **1-Click Remote Neutralization**: Isolate and neutralize infected files directly from the web interface.
-
-### ⚡ 1-Line Server Install (Auto-Starts via Systemd)
-Run this single command on your Linux server:
-```bash
-curl -fsSL https://ahasun-h.github.io/SecurityGuard/install-server.sh | sudo bash
-```
-*(Or run manually in this repository: `npm run server`)*
-
-Once installed, open `http://<YOUR_SERVER_IP>:8888` in your browser to access the Web View!
-
 ## 🚀 Quick Start
 
 Run directly from source in development mode:

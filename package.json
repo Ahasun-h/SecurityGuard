@@ -4,8 +4,8 @@
   "description": "Security Guard Desktop - Supply-chain, Malware & Host Threat Defense Center with GitHub Auth & AI Analysis",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "build": "npm run build:mac && npm run build:win && npm run build:linux",
+    "start": "node api.js && electron .",
+    "build": "node api.js && npm run build:mac && npm run build:win && npm run build:linux",
     "build:all": "npm run build:mac && npm run build:win && npm run build:linux",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
@@ -15,9 +15,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
-    "fix:mac": "bash fix-mac.sh",
-    "server": "node server/server.js",
-    "start:server": "node server/server.js"
+    "fix:mac": "bash fix-mac.sh"
   },
   "keywords": [
     "security",
