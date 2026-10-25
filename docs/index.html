@@ -283,19 +283,29 @@
             <div class="step-num">2</div>
             <div class="step-content">
               <h4 class="step-title">Fix macOS Gatekeeper ("Damaged & Can't Be Opened" Warning)</h4>
-              <p class="step-desc">Because Security Guard is an open-source binary distributed outside the Mac App Store, macOS attaches a quarantine flag. Open <strong>Terminal</strong> and run this 1-line command:</p>
+              <p class="step-desc">Because Security Guard is an open-source binary distributed outside the commercial Mac App Store, modern macOS attaches a quarantine flag and may show a warning: <em>"Security Guard is damaged and can't be opened. You should move it to the Trash."</em> <strong>The app is safe and NOT damaged.</strong></p>
               
+              <div class="callout callout-info" style="margin-top:14px; margin-bottom:16px;">
+                <span>⚙️</span>
+                <div>
+                  <strong style="color:var(--accent-cyan); font-size:15px;">Method A: Mac System Settings (Recommended • No Terminal Needed)</strong>
+                  <ol style="margin: 8px 0 0 18px; padding: 0; line-height: 1.7; font-size: 13.5px; color: var(--text-main);">
+                    <li>In the warning popup, click <strong>Cancel</strong> <em>(do NOT click Move to Trash)</em>.</li>
+                    <li>Click the <strong> Apple Menu</strong> (top-left of screen) &rarr; choose <strong>System Settings</strong>.</li>
+                    <li>In the left sidebar, click <strong>Privacy & Security</strong>.</li>
+                    <li>Scroll down to the <strong>Security</strong> section.</li>
+                    <li>Under <em>"Security Guard was blocked from use because it is not from an identified developer"</em>, click the button: <strong style="background:rgba(0,240,255,0.15); color:var(--accent-cyan); padding:2px 8px; border-radius:4px;">Open Anyway</strong>.</li>
+                    <li>Enter your Mac password or use Touch ID, then click <strong>Open</strong>.</li>
+                  </ol>
+                  <p style="font-size:12.5px; color:var(--text-muted); margin-top:8px;"><em>macOS will permanently remember this approval, and you can open Security Guard directly from now on.</em></p>
+                </div>
+              </div>
+
+              <strong style="color:var(--text-main); font-size:14px;">Method B: Instant 1-Line Terminal Fix</strong>
+              <p class="step-desc" style="margin-top:4px;">Open <strong>Terminal</strong> and paste this command to instantly remove the quarantine attribute:</p>
               <div class="code-box">
                 <code>xattr -cr "/Applications/Security Guard.app"</code>
                 <button class="btn-copy" data-copy="xattr -cr &quot;/Applications/Security Guard.app&quot;">Copy Command</button>
-              </div>
-
-              <div class="callout callout-info" style="margin-top:14px;">
-                <span>💡</span>
-                <div>
-                  <strong>Alternative GUI Method (No Terminal):</strong><br>
-                  Open <strong>System Settings</strong> &rarr; <strong>Privacy & Security</strong> &rarr; scroll to <strong>Security</strong> &rarr; click <strong>"Open Anyway"</strong> next to Security Guard.
-                </div>
               </div>
             </div>
           </div>
