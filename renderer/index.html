@@ -3,834 +3,1076 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Guard Desktop</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>TwinDesk</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <!-- Native macOS Draggable Titlebar Strip -->
-  <header class="window-drag-header">
-    <div class="drag-bar-left">
-      <span class="drag-logo-icon">🛡️</span>
-      <span class="drag-title">SECURITY GUARD // DEFENSE HUB</span>
-      <span class="drag-sep">/</span>
-      <span class="drag-subtitle">BeaverTail & Supply-Chain Protection</span>
+<body class="twindesk-app">
+
+  <!-- Native Windows Style Titlebar -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="header-app-name">TwinDesk</span>
     </div>
-    <div class="drag-bar-center"></div>
-    <div class="drag-bar-right">
-      <span class="engine-tag" id="engineStatusTag">
-        <span class="status-indicator-dot"></span> Guard 2.2.0 Active
-      </span>
+    <div class="header-drag-space"></div>
+    <div class="header-win-controls">
+      <button class="win-btn" id="winMinimize" title="Minimize">
+        <svg viewBox="0 0 10 1" width="10" height="1"><rect width="10" height="1" fill="#9ca3af"/></svg>
+      </button>
+      <button class="win-btn" id="winMaximize" title="Maximize">
+        <svg viewBox="0 0 10 10" width="10" height="10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="#9ca3af" stroke-width="1"/></svg>
+      </button>
+      <button class="win-btn btn-win-close" id="winClose" title="Close">
+        <svg viewBox="0 0 10 10" width="10" height="10"><path d="M1 1L9 9M9 1L1 9" stroke="#9ca3af" stroke-width="1.2"/></svg>
+      </button>
     </div>
   </header>
 
-  <div class="window-frame">
-    <!-- Main Application Container -->
-    <div class="app-card">
-      
-      <!-- Left & Center: Main Stage -->
-      <div class="main-stage">
-        
-        <!-- Top Search & Filter Bar -->
-        <div class="top-nav">
-          <button class="menu-icon-btn" id="btnToggleMenu" title="Menu">
-            <span class="menu-bar"></span>
-            <span class="menu-bar short"></span>
-          </button>
+  <!-- App Body Layout -->
+  <div class="app-container">
 
-          <div class="search-pill">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    <!-- Left Sidebar (Exact TwinDesk Layout Pattern) -->
+    <aside class="sidebar-panel">
+
+      <!-- Brand Header -->
+      <div class="brand-box">
+        <div class="brand-icon-tile">
+          <!-- Monitor with Mouse Pointer Icon -->
+          <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
+            <rect x="2" y="3" width="24" height="16" rx="2" stroke="#e5e7eb" stroke-width="1.8"/>
+            <line x1="9" y1="23" x2="19" y2="23" stroke="#e5e7eb" stroke-width="2"/>
+            <line x1="14" y1="19" x2="14" y2="23" stroke="#e5e7eb" stroke-width="2"/>
+            <path d="M13 8l3 8.5-2.2-.4-1.3 2.4-1.2-.6 1.3-2.4-2.1-.4L13 8z" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h2 class="brand-heading">TwinDesk</h2>
+          <div class="brand-sub">
+            <span class="dot-green"></span>
+            <span class="brand-sub-name" id="brandSubName">Ahasuns-Mac-...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Device Pill Card (Red Outline Signature Card) -->
+      <div class="device-pill-card" id="btnHostCard">
+        <div class="pill-left">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e5e7eb" stroke-width="1.8">
+            <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+            <path d="M1 20h22"></path>
+          </svg>
+          <div class="pill-info">
+            <span class="pill-title" id="pillDeviceName">Ahasuns-Mac-mini</span>
+            <span class="pill-ping" id="pillPing">6 ms</span>
+          </div>
+        </div>
+        <span class="dot-green pulse right-align"></span>
+      </div>
+
+      <!-- Navigation Menu Items (Exact 17 Screens Matching TwinDesk) -->
+      <nav class="nav-list">
+        <!-- 1. Overview -->
+        <div class="nav-row" data-tab="overview">
+          <div class="icon-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
-            <input type="text" id="globalSearchInput" placeholder="Search repositories, files, or threats...">
-            <div class="search-dropdown-divider"></div>
-            <div class="search-scope-select">
-              <select id="searchScopeSelect">
-                <option value="all">All Targets</option>
-                <option value="github">GitHub Only</option>
-                <option value="local">Local PC Only</option>
-              </select>
-            </div>
+          </div>
+          <span class="nav-text">Overview</span>
+        </div>
+
+        <!-- 2. Connection (ACTIVE by Default - Red Pill) -->
+        <div class="nav-row active-red" data-tab="connection">
+          <div class="icon-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </div>
+          <span class="nav-text">Connection</span>
+        </div>
+
+        <!-- 3. Receive screen -->
+        <div class="nav-row" data-tab="receive">
+          <div class="icon-wrap color-cyan">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+              <polyline points="9 10 12 13 15 10"></polyline>
+            </svg>
+          </div>
+          <span class="nav-text">Receive screen</span>
+        </div>
+
+        <!-- 4. Share screen -->
+        <div class="nav-row" data-tab="share">
+          <div class="icon-wrap color-cyan">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+              <polyline points="9 11 12 8 15 11"></polyline>
+            </svg>
+          </div>
+          <span class="nav-text">Share screen</span>
+        </div>
+
+        <!-- 5. Apps -->
+        <div class="nav-row" data-tab="apps">
+          <div class="icon-wrap color-purple">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+            </svg>
+          </div>
+          <span class="nav-text">Apps</span>
+        </div>
+
+        <!-- 6. Mouse (with Green Dot) -->
+        <div class="nav-row" data-tab="mouse">
+          <div class="icon-wrap color-amber">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
+              <path d="M13 13l6 6"></path>
+            </svg>
+          </div>
+          <span class="nav-text">Mouse</span>
+          <span class="dot-green right-align"></span>
+        </div>
+
+        <!-- 7. Keyboard (with Green Dot) -->
+        <div class="nav-row" data-tab="keyboard">
+          <div class="icon-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="6" y1="8" x2="6.01" y2="8"></line>
+              <line x1="10" y1="8" x2="10.01" y2="8"></line>
+              <line x1="14" y1="8" x2="14.01" y2="8"></line>
+              <line x1="18" y1="8" x2="18.01" y2="8"></line>
+              <line x1="6" y1="12" x2="6.01" y2="12"></line>
+              <line x1="18" y1="12" x2="18.01" y2="12"></line>
+              <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+          </div>
+          <span class="nav-text">Keyboard</span>
+          <span class="dot-green right-align"></span>
+        </div>
+
+        <!-- 8. Clipboard -->
+        <div class="nav-row" data-tab="clipboard">
+          <div class="icon-wrap color-cyan">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <path d="M9 14l2 2 4-4"></path>
+            </svg>
+          </div>
+          <span class="nav-text">Clipboard</span>
+        </div>
+
+        <!-- 9. Notifications -->
+        <div class="nav-row" data-tab="notifications">
+          <div class="icon-wrap color-red">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </div>
+          <span class="nav-text">Notifications</span>
+        </div>
+
+        <!-- 10. File Sharing -->
+        <div class="nav-row" data-tab="files">
+          <div class="icon-wrap color-cyan">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <span class="nav-text">File Sharing</span>
+        </div>
+
+        <!-- 11. Audio -->
+        <div class="nav-row" data-tab="audio">
+          <div class="icon-wrap color-pink">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </div>
+          <span class="nav-text">Audio</span>
+        </div>
+
+        <!-- 12. Camera -->
+        <div class="nav-row" data-tab="camera">
+          <div class="icon-wrap color-purple">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 7l-7 5 7 5V7z"></path>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+          </div>
+          <span class="nav-text">Camera</span>
+        </div>
+
+        <!-- 13. ReZume -->
+        <div class="nav-row" data-tab="rezume">
+          <div class="icon-wrap color-blue">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+          </div>
+          <span class="nav-text">ReZume</span>
+        </div>
+
+        <!-- 14. Terminal -->
+        <div class="nav-row" data-tab="terminal">
+          <div class="icon-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+          </div>
+          <span class="nav-text">Terminal</span>
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <!-- 15. Multi-device -->
+        <div class="nav-row" data-tab="multidevice">
+          <div class="icon-wrap color-indigo">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="14" height="10" rx="1.5"></rect>
+              <rect x="8" y="12" width="14" height="10" rx="1.5"></rect>
+            </svg>
+          </div>
+          <span class="nav-text">Multi-device</span>
+        </div>
+
+        <!-- 16. General -->
+        <div class="nav-row" data-tab="general">
+          <div class="icon-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+          <span class="nav-text">General</span>
+        </div>
+
+        <!-- 17. About -->
+        <div class="nav-row" data-tab="about">
+          <div class="icon-wrap color-cyan">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <span class="nav-text">About</span>
+        </div>
+      </nav>
+
+    </aside>
+
+    <!-- Main Viewport Panes -->
+    <main class="main-viewport">
+
+      <!-- ================= SCREEN 2: CONNECTION (EXACT PIXEL MATCH FOR USER SCREENSHOT) ================= -->
+      <section class="tab-pane active" id="pane-connection">
+        <h1 class="view-title">Connection</h1>
+
+        <!-- Row 1: Local Device & IP -->
+        <div class="bar-row">
+          <span class="bar-user-label" id="textHostName">Ahasun</span>
+          <div class="bar-ip-wrap">
+            <span class="bar-ip-val" id="textMyIp">192.168.110.146</span>
+            <button class="dark-pill-btn" id="btnCopyIp">Copy</button>
           </div>
         </div>
 
-        <!-- Dynamic Content Body -->
-        <div class="stage-scrollable">
+        <!-- Row 2: Connect by address -->
+        <div class="bar-row">
+          <span class="bar-label">Connect by address</span>
+          <div class="bar-input-wrap">
+            <input type="text" class="dark-input" id="inputTargetIp" value="192.168.1.20" placeholder="IP Address..." />
+            <button class="red-pill-btn" id="btnConnect">Connect</button>
+          </div>
+        </div>
 
-          <!-- TAB: DASHBOARD -->
-          <div class="view-pane active" id="view-dashboard">
-            
-            <!-- Hero Turquoise Banner -->
-            <div class="hero-banner">
-              <div class="hero-left">
-                <div class="hero-icon-box">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    <path d="M9 12l2 2 4-4"/>
-                  </svg>
-                </div>
-                <div class="hero-title-group">
-                  <h2 class="hero-title">Security Guard</h2>
-                  <span class="hero-subtitle">Defense Engine</span>
-                </div>
-              </div>
+        <!-- Section 3: Found nearby -->
+        <div class="section-block">
+          <div class="group-header">
+            <span class="group-title">Found nearby</span>
+            <button class="dark-pill-btn" id="btnRefresh">Refresh</button>
+          </div>
 
-              <div class="hero-middle">
-                <div class="category-header">
-                  <h4>Scan Matrix Targets</h4>
-                  <p>Automated supply-chain, trojan & malware defense</p>
-                </div>
-                <div class="category-circles">
-                  <div class="cat-circle-wrap" title="GitHub Repositories">
-                    <div class="cat-circle cat-gh">🐙</div>
-                    <span class="cat-label">GitHub</span>
-                  </div>
-                  <div class="cat-circle-wrap" title="Local PC Workstation">
-                    <div class="cat-circle cat-pc">💻</div>
-                    <span class="cat-label">Local PC</span>
-                  </div>
-                  <div class="cat-circle-wrap" title="Add Custom Directory" id="heroBtnAddPath">
-                    <div class="cat-circle cat-add">+</div>
-                    <span class="cat-label">Add Path</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="hero-right">
-                <div class="recommended-box">
-                  <h4>Recommended</h4>
-                  <p>Execute full sweep across all user public & private repositories and workstation folders.</p>
-                  <button class="btn-hero-action" id="btnHeroRunScan">Run Full Scan</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Section: Repositories & Workspaces Title + Filter Pills -->
-
-            <div class="section-header-row">
-              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                <h3 class="section-title">Protected Repositories & Workspaces</h3>
-                <span id="repoCacheSyncBadge" style="font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: #eef7f2; color: #1e7e51; border: 1px solid rgba(30,126,81,0.18); display: none; align-items: center; gap: 5px;"></span>
-              </div>
-              <div class="pill-tabs" id="repoFilterPills">
-                <button class="pill-tab active" data-filter="all">All (<span id="countAll">0</span>)</button>
-                <button class="pill-tab" data-filter="scanned">✅ Scanned (<span id="countScanned">0</span>)</button>
-                <button class="pill-tab" data-filter="unscanned">⏳ Unscanned (<span id="countUnscanned">0</span>)</button>
-                <button class="pill-tab" data-filter="private">🔒 Private (<span id="countPrivate">0</span>)</button>
-                <button class="pill-tab" data-filter="public">🌐 Public (<span id="countPublic">0</span>)</button>
-                <button class="pill-tab" data-filter="local">💻 Local PC (<span id="countLocal">4</span>)</button>
-              </div>
-            </div>
-
-            <!-- Colored Pill Cards List -->
-            <div class="colored-cards-list" id="dashboardCardsList">
-              <!-- Dynamically populated rows styled as in reference image -->
-              <div class="loading-state-card">
-                <div class="spinner-dot"></div>
-                <span>Loading repositories and workstation watchpoints...</span>
-              </div>
-            </div>
-
-            <!-- Load More Button -->
-            <div class="load-more-row" id="loadMoreRow" style="display:none;">
-              <button class="btn-load-more" id="btnLoadMoreRepos">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="16" height="16">
-                  <polyline points="6 9 12 15 18 9"/>
+          <div class="group-card">
+            <!-- Nearby Device Row -->
+            <div class="nearby-device-row">
+              <div class="device-meta-left">
+                <!-- Laptop Icon -->
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#d1d5db" stroke-width="1.8">
+                  <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+                  <path d="M1 20h22"></path>
                 </svg>
-                Load More Repositories
-                <span class="load-more-count" id="loadMoreCount"></span>
-              </button>
+                <div class="device-meta-text">
+                  <span class="device-name-text">Ahasuns-Mac-mini</span>
+                  <span class="device-ip-text">192.168.110.197</span>
+                </div>
+              </div>
+              <span class="text-green-connected" id="nearbyStatusTag">Connected</span>
             </div>
 
-            <!-- Details Explainer Section -->
-            <div class="details-section">
-              <div class="details-left">
-                <h4 class="details-heading">Engine Inspection Scope</h4>
-                <p class="details-desc">
-                  Guard analyzes VS Code configurations, CI/CD pipeline integrity, dependency blocklists, and executes YARA heuristic scanning to prevent compromised packages.
-                </p>
-                <a href="#" class="details-link" id="btnLearnMore">How it works &rarr;</a>
-              </div>
-              <div class="details-right-actions">
-                <button class="btn-subtle" id="btnSyncCloudData">Sync GitHub Repos</button>
-                <button class="btn-subtle" id="btnTriggerLocalScan">Scan Local Files</button>
-              </div>
+            <!-- Toggle Row 1: Bluetooth with phones (ON by default) -->
+            <div class="toggle-row">
+              <span class="toggle-title">Bluetooth with phones</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="chkBtPhones" checked />
+                <span class="slider red-switch"></span>
+              </label>
             </div>
 
-          </div>
-
-          <!-- TAB: GITHUB CLOUD REPOSITORIES -->
-          <!-- TAB: GITHUB CLOUD REPOSITORIES -->
-          <div class="view-pane" id="view-github">
-            <div class="pane-headline-row">
-              <div>
-                <h2 class="pane-headline">GitHub Cloud Defense</h2>
-                <p class="pane-sub">Authenticated deep inspection for all public and private repositories.</p>
-              </div>
-              <div class="pane-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <button class="btn-pill-secondary" id="btnSelectAllRepos">Select All</button>
-                <button class="btn-pill-outline" id="btnInstallCiAll" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;" title="Install automated multi-job CI/CD Pipeline (Test, Security Scan & Deploy) to all repositories">
-                  🚀 Protect All Repos (CI/CD Pipeline)
-                </button>
-                <button class="btn-pill-primary" id="btnScanSelectedFromTab">Scan Selected (<span id="selectedCountTab">0</span>)</button>
-              </div>
+            <!-- Toggle Row 2: Bluetooth with computers (OFF by default) -->
+            <div class="toggle-row">
+              <span class="toggle-title">Bluetooth with computers</span>
+              <label class="ios-switch">
+                <input type="checkbox" id="chkBtComputers" />
+                <span class="slider gray-switch"></span>
+              </label>
             </div>
-
-            <!-- Batch CI/CD Installation Status Banner -->
-            <div id="batchCiProgressBanner" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 18px; margin-bottom:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <strong style="color:#1d4ed8; font-size:13px; display:flex; align-items:center; gap:8px;">
-                  <span class="spinner-dot" style="border-color:#2563eb; border-top-color:transparent; width:14px; height:14px; border-width:2px; display:inline-block;"></span>
-                  Installing CI/CD Pipeline to Repositories...
-                </strong>
-                <span id="batchCiProgressCount" style="font-size:12px; font-weight:700; color:#1e40af;">0 / 0</span>
-              </div>
-              <div style="height:6px; background:#dbeafe; border-radius:3px; overflow:hidden;">
-                <div id="batchCiProgressBar" style="width:0%; height:100%; background:#2563eb; transition:width 0.3s ease;"></div>
-              </div>
-              <p id="batchCiCurrentRepo" style="font-size:11px; color:#475569; margin:6px 0 0 0; font-family:monospace;"></p>
-            </div>
-
-            <div class="github-repo-grid" id="githubRepoFullList">
-              <!-- Full grid of repos -->
-            </div>
-          </div>
-
-          <!-- TAB: LOCAL PC WORKSTATION -->
-          <div class="view-pane" id="view-local">
-            <div class="pane-headline-row">
-              <div>
-                <h2 class="pane-headline">Local Workstation Security</h2>
-                <p class="pane-sub">Inspect macOS file directories, developer projects, and persistence mechanisms.</p>
-              </div>
-              <div class="pane-actions">
-                <button class="btn-pill-outline" id="btnVerifyVsCodeDirect" style="display:inline-flex; align-items:center; gap:6px;">🛡️ Verify VS Code</button>
-                <button class="btn-pill-outline" id="btnVerifyAntigravityDirect" style="display:inline-flex; align-items:center; gap:6px;">🚀 Verify Antigravity</button>
-                <button class="btn-pill-secondary" id="btnSelectCustomDir">+ Custom Folder</button>
-                <button class="btn-pill-primary" id="btnRunLocalDirect">⚡ Run Background PC Scan</button>
-              </div>
-            </div>
-
-            <!-- UNIFIED WORKSTATION SHIELD & GIT INTERCEPTOR HUB -->
-            <div id="unifiedWorkstationShieldCard" class="unified-shield-card">
-              <div class="shield-hub-header">
-                <div class="shield-hub-title-group">
-                  <span id="gitHooksDot" class="shield-live-glow-dot"></span>
-                  <div>
-                    <div class="shield-title-row">
-                      <h3 class="shield-hub-title">Real-Time Workstation Shield &amp; Git Interceptor</h3>
-                      <span id="gitHooksBadge" class="shield-active-pill">INTERCEPTOR ACTIVE</span>
-                      <span class="shield-version-pill">Native v1.0</span>
-                    </div>
-                    <p class="shield-hub-sub">
-                      Protects local developer workspaces, scans persistence hooks, and intercepts all <code>git push</code> &amp; <code>git pull</code> actions PC-wide.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Two Column Feature Grid -->
-              <div class="shield-hub-grid">
-                <!-- Column 1: Background Watcher & Persistence -->
-                <div class="shield-subcard">
-                  <div class="subcard-header">
-                    <span class="subcard-icon">🖥️</span>
-                    <div>
-                      <h4 class="subcard-title">Host Persistence &amp; Malware Watcher</h4>
-                      <p class="subcard-desc">Monitors ~/Desktop, ~/Downloads, ~/Projects and user LaunchAgents in background.</p>
-                    </div>
-                  </div>
-                  <div class="subcard-actions">
-                    <button class="btn-pill-secondary btn-sm" id="btnRunHostTriage">⚡ Persistence Triage</button>
-                    <button class="btn-pill-outline btn-sm" id="btnToggleDaemon">Shield Status</button>
-                  </div>
-                </div>
-
-                <!-- Column 2: Global Git Interceptor -->
-                <div class="shield-subcard">
-                  <div class="subcard-header">
-                    <span class="subcard-icon">🐙</span>
-                    <div>
-                      <h4 class="subcard-title">Global Git Push &amp; Pull Interceptor</h4>
-                      <p class="subcard-desc">Hooks <code>pre-push</code> &amp; <code>post-merge</code> to block contaminated commits before push.</p>
-                    </div>
-                  </div>
-                  <div class="subcard-actions">
-                    <button class="btn-pill-primary btn-sm" id="btnToggleGitHooks">
-                      🛡️ Global Hooks Active
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Telemetry strip -->
-              <div class="shield-telemetry-strip">
-                <span>📁 <strong>Hooks Path:</strong> <code id="gitHooksPathText">~/.guard/hooks</code></span>
-                <span>🖥️ <strong>Platform:</strong> <span id="shieldPlatformText">macOS darwin-arm64</span></span>
-                <span>⚙️ <strong>Interception:</strong> <span>BeaverTail, fake fonts &amp; poisoned scripts</span></span>
-                <span>🚨 <strong>Response:</strong> <span>Auto-abort push + native OS desktop alert</span></span>
-              </div>
-            </div>
-
-            <!-- HOST TRIAGE TERMINAL RESULTS DRAWER -->
-            <div id="triageResultsDrawer" style="display:none; margin-bottom:20px; background:#0a0f1d; border:1px solid #1e293b; border-radius:12px; padding:16px; color:#f8fafc; box-shadow:0 8px 24px rgba(0,0,0,0.2);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span id="triageVerdictBadge" style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:20px; background:#064e3b; color:#34d399;">HOST TRIAGE: CLEAN</span>
-                  <strong style="font-size:13px; color:#e2e8f0;">OS-Native Host Persistence & Rootkit Analysis</strong>
-                </div>
-                <button id="btnCloseTriageDrawer" style="background:none; border:none; font-size:18px; cursor:pointer; color:#94a3b8; padding:0 4px;">&times;</button>
-              </div>
-              <div style="font-family:var(--font-mono); font-size:11px; background:#020617; padding:8px 12px; border-radius:8px; border:1px solid #1e293b; color:#38bdf8; margin-bottom:8px;">
-                $ guard triage  # Auditing reboot persistence, LaunchDaemons, systemd, and cron
-              </div>
-              <pre id="triageOutputPre" style="font-family:var(--font-mono); font-size:11px; line-height:1.45; max-height:280px; overflow-y:auto; color:#94a3b8; margin:0; white-space:pre-wrap;"></pre>
-            </div>
-
-            <!-- VS Code Terminal Codesign Result Banner -->
-            <div id="vscodeCodesignBanner" style="display:none; margin-bottom: 20px; background:#ffffff; border:1px solid var(--border-light); border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span id="vscodeCodesignBadge" style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:20px; background:#eef7f2; color:#1e7e51;">VERIFIED INTACT</span>
-                  <strong style="font-size:13px; color:var(--text-main);">Visual Studio Code Integrity Check</strong>
-                </div>
-                <button id="btnCloseVsCodeBanner" style="background:none; border:none; font-size:16px; cursor:pointer; color:var(--text-muted); padding:0 4px;">&times;</button>
-              </div>
-              <div style="font-family:var(--font-mono); font-size:11px; background:var(--bg-canvas); padding:8px 12px; border-radius:8px; border:1px solid var(--border-light); color:var(--text-main); margin-bottom:6px;">
-                $ <span id="vscodeCodesignCmd">codesign --verify --deep --strict &quot;/Applications/Visual Studio Code.app&quot;</span>
-              </div>
-              <div id="vscodeCodesignMsg" style="font-size:12px; color:var(--text-muted); line-height:1.5;"></div>
-            </div>
-
-            <!-- SECTION 1: DETECTED DISKS & STORAGE MEDIA -->
-            <div class="storage-section" style="margin-bottom: 28px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <h3 style="font-size:15px; font-weight:700; color:var(--text-main); margin:0; display:flex; align-items:center; gap:8px;">
-                    💾 Available Disks &amp; Storage Drives
-                    <span id="badgeDiskCount" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#e0f2fe; color:#0369a1;">0 Disks</span>
-                  </h3>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <button class="btn-pill-outline" id="btnSelectAllDisks" style="font-size:12px; padding:6px 12px;">Select All Disks</button>
-                  <button class="btn-pill-primary" id="btnScanAllDisks" style="font-size:12px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px;">⚡ Scan Selected Disks</button>
-                  <button class="btn-pill-secondary" id="btnRefreshDisks" style="font-size:12px; padding:6px 12px;" title="Rescan and refresh all mounted volumes">🔄 Refresh Disks</button>
-                </div>
-              </div>
-              <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px 0;">
-                All local hard drives, internal SSDs, external USB volumes, and mounted partitions detected on your operating system. Select any storage volume to run supply-chain, malware, and rootkit audits.
-              </p>
-              <div class="disks-grid" id="disksContainer">
-                <!-- Disk cards dynamically rendered here -->
-              </div>
-            </div>
-
-            <!-- SECTION 2: WORKSTATION DIRECTORIES & REPOSITORIES -->
-            <div class="folders-section">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <h3 style="font-size:15px; font-weight:700; color:var(--text-main); margin:0; display:flex; align-items:center; gap:8px;">
-                    📁 Workstation Directories &amp; Developer Projects
-                    <span id="badgeFolderCount" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#f1f5f9; color:#475569;">0 Folders</span>
-                  </h3>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <button class="btn-pill-outline" id="btnSelectAllFolders" style="font-size:12px; padding:6px 12px;">Select All Folders</button>
-                  <button class="btn-pill-secondary" id="btnBrowseCustomFolder" style="font-size:12px; padding:6px 12px;">+ Add Custom Folder / Drive</button>
-                </div>
-              </div>
-              <div class="local-targets-grid" id="localTargetsContainer">
-                <!-- Targets listed here -->
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB: THREAT REPORTS & AI -->
-          <div class="view-pane" id="view-reports">
-            <div class="pane-headline-row">
-              <div>
-                <h2 class="pane-headline">Threat Intelligence & Reports</h2>
-                <p class="pane-sub">Review audit telemetry, vulnerability findings, and AI remediation plans.</p>
-              </div>
-              <div class="pane-actions">
-                <button class="btn-pill-secondary" id="btnClearSessionReports" title="Reset scan history for this account session">Reset Session</button>
-                <button class="btn-pill-secondary" id="btnExportJsonTab">Export JSON</button>
-                <button class="btn-pill-secondary" id="btnExportHtmlTab">Export HTML</button>
-                <button class="btn-pill-accent" id="btnGenerateAiTab">✨ Generate AI Report</button>
-              </div>
-            </div>
-
-            <!-- Active Account Session Indicator -->
-            <div class="report-session-header" style="margin-bottom:14px; background:#ffffff; border:1px solid var(--border-light); border-radius:12px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:20px; background:#eef7f2; color:#1e7e51;" id="reportSessionAccountTag">Active Session: @Not Connected</span>
-                <span style="font-size:12px; color:var(--text-muted);" id="reportSessionSummaryTxt">Scan Session: 0 Repos Scanned</span>
-              </div>
-              <div style="font-size:11px; color:var(--text-muted);" id="reportSessionLastScannedTxt">Last Scan: Never</div>
-            </div>
-
-            <div class="report-overview-row">
-              <div class="stat-bubble bubble-cyan">
-                <span class="bubble-num" id="statScannedCount">0</span>
-                <span class="bubble-label">Scanned</span>
-              </div>
-              <div class="stat-bubble bubble-coral">
-                <span class="bubble-num" id="statThreatCount">0</span>
-                <span class="bubble-label">Threats</span>
-              </div>
-              <div class="stat-bubble bubble-green">
-                <span class="bubble-num" id="statCleanCount">0</span>
-                <span class="bubble-label">Clean</span>
-              </div>
-              <div class="stat-bubble bubble-yellow">
-                <span class="bubble-num" id="statWarningsCount">0</span>
-                <span class="bubble-label">Warnings</span>
-              </div>
-            </div>
-
-            <div class="report-split-grid">
-              <div class="report-left-panel">
-                <h4 class="sub-heading">Audit Breakdown</h4>
-                <div class="findings-list" id="reportFindingsList">
-                  <div class="empty-state-box">
-                    <p>No audit has been run yet. Run a scan from the Dashboard or GitHub tab.</p>
-                  </div>
-                </div>
-              </div>
-              <div class="report-right-panel">
-                <div class="ai-box-header">
-                  <span class="sparkle-icon">🤖</span>
-                  <h4>AI Security Copilot Remediation</h4>
-                  <span class="ai-provider-badge" id="aiProviderBadge">GEMINI</span>
-                </div>
-                <div class="ai-box-content" id="aiAnalysisContainer">
-                  <div class="ai-empty-prompt">
-                    <p>Click <strong>"Generate AI Report"</strong> to evaluate the scan findings and generate a step-by-step risk remediation playbook.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB: SETTINGS -->
-          <div class="view-pane" id="view-settings">
-            <div class="pane-headline-row">
-              <div>
-                <h2 class="pane-headline">Settings & Credentials</h2>
-                <p class="pane-sub">Manage AI API keys, GitHub tokens, and scanning sensitivity.</p>
-              </div>
-            </div>
-
-            <div class="settings-cards-grid">
-              <!-- AI Setup Card -->
-              <div class="settings-clean-card">
-                <div class="settings-card-head">
-                  <span class="settings-icon">🤖</span>
-                  <h4>AI API Setup</h4>
-                </div>
-                <div class="form-row">
-                  <label>Provider</label>
-                  <select id="cfgAiProvider" class="soft-input">
-                    <option value="gemini">Google Gemini (Recommended - Free Tier)</option>
-                    <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
-                    <option value="claude">Anthropic Claude (Claude 3.5 Sonnet)</option>
-                    <option value="ollama">Local Ollama (Offline / Private)</option>
-                  </select>
-                </div>
-                <div class="form-row" id="grpApiKey">
-                  <label>API Key</label>
-                  <div class="input-action-wrap">
-                    <input type="password" id="cfgAiApiKey" class="soft-input" placeholder="AIzaSy... or sk-...">
-                    <button class="btn-micro" id="btnToggleKeyVis">Show</button>
-                  </div>
-                  <span class="micro-note">Stored safely in <code>~/.guard/desktop-config.json</code></span>
-                </div>
-                <div class="form-row" id="grpAiModel">
-                  <label>Model Name</label>
-                  <input type="text" id="cfgAiModel" class="soft-input" value="gemini-1.5-flash">
-                </div>
-                <div class="form-row" id="grpOllamaEndpoint" style="display: none;">
-                  <label>Ollama Endpoint</label>
-                  <input type="text" id="cfgOllamaEndpoint" class="soft-input" value="http://localhost:11434">
-                </div>
-                <button class="btn-pill-primary" id="btnSaveAiCfg" style="margin-top: 14px;">Save AI Settings</button>
-                <span class="save-feedback" id="aiFeedbackMsg"></span>
-              </div>
-
-              <!-- GitHub Account Management Card -->
-              <div class="settings-clean-card">
-                <div class="settings-card-head">
-                  <span class="settings-icon">🐙</span>
-                  <h4>GitHub Account Manager</h4>
-                </div>
-
-                <!-- Active account banner -->
-                <div class="auth-status-chip" id="settingsAuthStatusChip">
-                  <span class="dot-online"></span>
-                  <div>
-                    <strong id="settingsGhUserTitle">GitHub CLI Connected</strong>
-                    <p id="settingsGhUserSub">Active Keyring Session</p>
-                  </div>
-                </div>
-
-                <!-- Saved Accounts List -->
-                <div style="margin-top:16px;">
-                  <label style="font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:0.5px;">SAVED ACCOUNTS</label>
-                  <div id="savedAccountsList" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"></div>
-                </div>
-
-                <!-- Add / Override Token -->
-                <div class="form-row" style="margin-top: 18px;">
-                  <label>Add Account via Personal Access Token</label>
-                  <div class="input-action-wrap">
-                    <input type="password" id="cfgGhToken" class="soft-input" placeholder="ghp_... or gho_... (Requires 'repo' scope)">
-                    <button class="btn-micro" id="btnToggleGhVis">Show</button>
-                  </div>
-                  <span class="micro-note">Needs scopes: <code>repo</code>, <code>read:user</code></span>
-                </div>
-                <div style="margin-bottom:12px;">
-                    <button class="btn-pill-primary" id="btnOAuthBrowser" style="width:100%; justify-content:center; padding:10px 16px; font-weight:700; background:#24292f; color:#fff; display:flex; align-items:center; gap:8px;">
-                      <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-                      Sign In with GitHub (Browser OAuth)
-                    </button>
-                  </div>
-                  <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap:wrap;">
-                  <button class="btn-pill-primary" id="btnAddGhAccount">+ Add Account</button>
-                  <button class="btn-pill-secondary" id="btnSaveGhCfg">Save Token Only</button>
-                  <button class="btn-pill-outline" id="btnResyncGhCli">Use gh CLI</button>
-                </div>
-                <span class="save-feedback" id="ghFeedbackMsg"></span>
-
-                <!-- Disconnect all -->
-                <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border-light);">
-                  <button class="btn-danger-outline" id="btnDisconnectAll">⚠ Disconnect All Accounts</button>
-                  <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:6px;">Clears stored tokens. GitHub CLI session unaffected.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB: ACCOUNT (dedicated GitHub account view) -->
-          <div class="view-pane" id="view-account">
-            <div class="pane-headline-row">
-              <div>
-                <h2 class="pane-headline">GitHub Account Management</h2>
-                <p class="pane-sub">Connect multiple GitHub accounts, switch active identity, and manage access tokens.</p>
-              </div>
-              <div class="pane-actions">
-                <button class="btn-pill-secondary" id="btnRefreshAccounts">↻ Refresh</button>
-                <button class="btn-pill-primary" id="btnOpenAddAccountModal">+ Add Account</button>
-              </div>
-            </div>
-
-            <!-- Connected Account Hero Card -->
-            <div class="account-hero-card" id="accountHeroCard">
-              <div class="account-hero-avatar">
-                <img src="" alt="" id="acctHeroAvatarImg" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
-              </div>
-              <div class="account-hero-info">
-                <div class="account-hero-name" id="acctHeroName">Not Connected</div>
-                <div class="account-hero-handle" id="acctHeroHandle">@unknown</div>
-                <div style="display:flex; gap:8px; margin-top:6px;">
-                  <span class="account-stat-pill"><strong id="acctRepoPub">0</strong> Public Repos</span>
-                  <span class="account-stat-pill"><strong id="acctRepoPriv">0</strong> Private Repos</span>
-                </div>
-              </div>
-              <div class="account-hero-actions">
-                <a href="#" class="btn-pill-secondary" id="acctOpenProfile" target="_blank">Open Profile ↗</a>
-                <button class="btn-danger-outline" id="acctDisconnectBtn">Disconnect</button>
-              </div>
-            </div>
-
-            <!-- All saved accounts grid -->
-            <div style="margin-top:24px;">
-              <h3 style="font-size:14px; font-weight:700; margin-bottom:12px;">All Saved Accounts</h3>
-              <div class="accounts-grid" id="accountsGrid">
-                <div class="empty-state-box"><p>No saved accounts yet. Add one below using your GitHub Personal Access Token.</p></div>
-              </div>
-            </div>
-
-            <!-- Add Account Inline Form -->
-            <div class="add-account-box" id="addAccountBox">
-              <div class="add-account-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <div>
-                  <h4>Connect GitHub Account</h4>
-                  <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Sign in via browser OAuth or enter a Personal Access Token.</p>
-                </div>
-                <button class="btn-pill-primary" id="btnAccountTabOAuthBrowser" style="background:var(--accent-coral); color:#fff; border:none; padding:8px 16px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:8px;">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                  Sign In with Browser OAuth
-                </button>
-              </div>
-
-              <div style="margin: 14px 0 12px; display:flex; align-items:center; gap:10px; color:var(--text-muted); font-size:11px;">
-                <span style="flex:1; height:1px; background:var(--border-light);"></span>
-                <span>OR ENTER PERSONAL ACCESS TOKEN</span>
-                <span style="flex:1; height:1px; background:var(--border-light);"></span>
-              </div>
-              <div class="form-row">
-                <label>Personal Access Token</label>
-                <div class="input-action-wrap">
-                  <input type="password" id="addAccountTokenInput" class="soft-input" placeholder="ghp_... — needs repo + read:user scope">
-                  <button class="btn-micro" id="btnToggleAddTokenVis">Show</button>
-                </div>
-                <span class="micro-note">Your token is stored locally and never sent to external servers.</span>
-              </div>
-              <button class="btn-pill-primary" id="btnConfirmAddAccount" style="margin-top:12px;">Validate &amp; Connect</button>
-              <span class="save-feedback" id="addAccountFeedback"></span>
-            </div>
-          </div>
-
-
-        </div>
-
-        <!-- Bottom Floating Dock -->
-        <div class="bottom-dock-container">
-          <div class="floating-dock">
-            <button class="dock-item active" data-tab="view-dashboard" title="Dashboard">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              <span class="dock-label">Home</span>
-              <span class="dock-dot"></span>
-            </button>
-            <button class="dock-item" data-tab="view-github" title="GitHub Cloud Scan">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-              </svg>
-              <span class="dock-label">GitHub</span>
-            </button>
-            <button class="dock-item" data-tab="view-account" title="GitHub Accounts">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              <span class="dock-label">Account</span>
-            </button>
-            <button class="dock-item" data-tab="view-local" title="Local Workstation">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
-              <span class="dock-label">Local PC</span>
-            </button>
-            <button class="dock-item" data-tab="view-reports" title="Threat Reports & AI">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-              <span class="dock-label">Reports</span>
-            </button>
-            <button class="dock-item" data-tab="view-settings" title="Settings">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-              <span class="dock-label">Settings</span>
-            </button>
-
-            <!-- Yellow Quick Action Filter Pill -->
-            <button class="dock-action-yellow" id="btnQuickDockAction">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-                <line x1="4" y1="21" x2="4" y2="14"></line>
-                <line x1="4" y1="10" x2="4" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12" y2="3"></line>
-                <line x1="20" y1="21" x2="20" y2="16"></line>
-                <line x1="20" y1="12" x2="20" y2="3"></line>
-                <line x1="1" y1="14" x2="7" y2="14"></line>
-                <line x1="9" y1="8" x2="15" y2="8"></line>
-                <line x1="17" y1="16" x2="23" y2="16"></line>
-              </svg>
-              Filter / Scan
-            </button>
           </div>
         </div>
 
-      </div>
+        <!-- Section 4: Pair a phone with a QR code -->
+        <div class="group-card qr-card-wrap">
+          <div class="qr-card">
+            <div class="qr-text-col">
+              <span class="qr-heading">Pair a phone with a QR code</span>
+              <span class="qr-subheading">Scan it with the phone's camera, or with Scan QR code in TwinDesk on the phone</span>
+            </div>
+            <button class="dark-pill-btn" id="btnShowQr">Show QR Code</button>
+          </div>
+        </div>
 
-      <!-- Right: User Profile & Control Sidebar -->
-      <aside class="right-panel">
+        <!-- Section 5: Center Visual Connection Graph (Ahasun <-> Ahasuns-Mac-mini) -->
+        <div class="group-card visualizer-card">
+          <div class="visualizer-stage">
+
+            <!-- Left Device: Monitor (Ahasun) -->
+            <div class="endpoint-node">
+              <div class="icon-monitor-draw">
+                <svg viewBox="0 0 100 80" width="84" height="66" fill="none">
+                  <rect x="8" y="8" width="84" height="52" rx="4" stroke="#ffffff" stroke-width="2.5"/>
+                  <path d="M42 60v12h16V60" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+                  <line x1="30" y1="72" x2="70" y2="72" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="endpoint-name">Ahasun</span>
+            </div>
+
+            <!-- Center Connection Gradient Bar -->
+            <div class="connection-link-track">
+              <div class="gradient-line-bar" id="gradientLinkBar">
+                <div class="pulse-bead"></div>
+              </div>
+              <span class="latency-status-tag" id="latencyIndicator">6 ms · Wi-Fi</span>
+            </div>
+
+            <!-- Right Device: Laptop (Ahasuns-Mac-mini) -->
+            <div class="endpoint-node">
+              <div class="icon-laptop-draw">
+                <svg viewBox="0 0 100 80" width="84" height="66" fill="none">
+                  <rect x="14" y="14" width="72" height="46" rx="4" stroke="#ffffff" stroke-width="2.5"/>
+                  <path d="M4 64h92a3 3 0 0 0 3-3v-1H1v1a3 3 0 0 0 3 3z" stroke="#ffffff" stroke-width="2.5" fill="#202026"/>
+                  <line x1="42" y1="60" x2="58" y2="60" stroke="#ffffff" stroke-width="2"/>
+                </svg>
+              </div>
+              <span class="endpoint-name">Ahasuns-Mac-mini</span>
+            </div>
+
+          </div>
+
+          <!-- Bottom Action: Status & Disconnect Button -->
+          <div class="visualizer-bottom">
+            <span class="state-label-text" id="connectionStateText">Connected</span>
+            <button class="dark-pill-btn btn-disconnect" id="btnDisconnect">Disconnect</button>
+          </div>
+        </div>
+
+        <!-- Section 6: Paired -->
+        <div class="paired-container">
+          <span class="paired-heading">Paired</span>
+          <div class="group-card paired-item-card">
+            <div class="device-meta-left">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#d1d5db" stroke-width="1.8">
+                <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+                <path d="M1 20h22"></path>
+              </svg>
+              <div class="device-meta-text">
+                <span class="device-name-text">Ahasuns-Mac-mini</span>
+                <span class="device-ip-text">Connected</span>
+              </div>
+            </div>
+            <div class="paired-right-controls">
+              <span class="text-green-online">Online</span>
+              <button class="dark-pill-btn" id="btnForget">Forget</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SCREEN 1: OVERVIEW ================= -->
+      <section class="tab-pane" id="pane-overview">
+        <h1 class="view-title">Overview</h1>
         
-        <!-- User Profile Pill Header -->
-        <div class="user-profile-header">
-          <div class="bell-pill" title="Notifications">
-            🔔
-          </div>
-          <div class="user-profile-info">
-            <span class="user-name-title" id="sideUserName">Webgenius0</span>
-          </div>
-          <div class="user-avatar-circle" id="sideUserAvatar">
-            <img src="" alt="" id="sideAvatarImg">
-          </div>
-        </div>
-
-        <!-- Section: View more ... (Watchpoints & Top Targets) -->
-        <div class="right-section">
-          <div class="right-section-head">
-            <h3>View more</h3>
-            <button class="icon-more-btn">•••</button>
-          </div>
-
-          <div class="side-items-list" id="sideWatchpointList">
-            <div class="side-item-row" data-target="home">
-              <div class="side-item-thumb bg-cyan">
-                🏠
-              </div>
-              <div class="side-item-text">
-                <strong>Home Workspace</strong>
-                <p>Host User System</p>
-              </div>
-              <button class="side-item-plus" title="Quick Scan">+</button>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="card-icon-header">
+              <span class="card-title">Connected Device</span>
+              <span class="dot-green"></span>
             </div>
-
-            <div class="side-item-row" data-target="desktop">
-              <div class="side-item-thumb bg-coral">
-                🖥️
+            <div class="overview-device-highlight">
+              <h3>Ahasuns-Mac-mini</h3>
+              <p>Apple Silicon (M2) · macOS Sonoma 14.4</p>
+              <div class="overview-metric-pills">
+                <span class="pill-badge">Latency: 6 ms</span>
+                <span class="pill-badge">Bitrate: 14.8 Mbps</span>
+                <span class="pill-badge">Wi-Fi 6 (5 GHz)</span>
               </div>
-              <div class="side-item-text">
-                <strong>Desktop Folder</strong>
-                <p>Downloaded scripts</p>
-              </div>
-              <button class="side-item-plus" title="Quick Scan">+</button>
             </div>
+          </div>
 
-            <div class="side-item-row" data-target="downloads">
-              <div class="side-item-thumb bg-purple">
-                📥
+          <div class="overview-card">
+            <div class="card-icon-header">
+              <span class="card-title">Security & Integrity Engine</span>
+              <span class="text-green-connected">Protected</span>
+            </div>
+            <div class="overview-device-highlight">
+              <h3>Host Workstation Safe</h3>
+              <p>Real-time Shield Active · Zero Backdoors or Trojans</p>
+              <div class="overview-metric-pills">
+                <span class="pill-badge green-badge">0 Active Threats</span>
+                <span class="pill-badge green-badge">Host Triage: Clean</span>
               </div>
-              <div class="side-item-text">
-                <strong>Downloads Vault</strong>
-                <p>Incoming archives</p>
-              </div>
-              <button class="side-item-plus" title="Quick Scan">+</button>
+              <button class="red-pill-btn" id="btnOverviewQuickScan" style="margin-top: 14px;">Scan Full PC</button>
             </div>
           </div>
         </div>
 
-        <!-- Section: Scan Scope & Target Filters -->
-        <div class="right-section filter-section">
-          <h3 class="right-section-title">Scan Scope &amp; Targets</h3>
-          <p class="filter-by-label">Filters for next scan:</p>
-
-          <div class="custom-checkbox-list">
-            <label class="custom-check-row">
-              <span class="check-title">Scan Private Repos</span>
-              <input type="checkbox" id="chkFilterPrivate" checked>
-              <span class="check-box-yellow"></span>
-            </label>
-
-            <label class="custom-check-row">
-              <span class="check-title">Scan Public Repos</span>
-              <input type="checkbox" id="chkFilterPublic" checked>
-              <span class="check-box-yellow"></span>
-            </label>
-
-            <label class="custom-check-row">
-              <span class="check-title">Supply-Chain & Droppers</span>
-              <input type="checkbox" id="chkFilterSupply" checked>
-              <span class="check-box-yellow"></span>
-            </label>
-
-            <label class="custom-check-row">
-              <span class="check-title">Antivirus (YARA Engine)</span>
-              <input type="checkbox" id="chkFilterAv" checked>
-              <span class="check-box-yellow"></span>
-            </label>
-
-            <label class="custom-check-row">
-              <span class="check-title">Deep Git Commit History</span>
-              <input type="checkbox" id="chkFilterGit">
-              <span class="check-box-yellow"></span>
-            </label>
-          </div>
-
-          <!-- Large Warm Yellow CTA Button -->
-          <button class="btn-yellow-block" id="btnRightApplyFilters">
-            Apply filters & Scan
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Quick Actions</span>
+        </div>
+        <div class="quick-actions-row">
+          <button class="action-tile-btn" data-target="receive">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><polyline points="9 10 12 13 15 10"></polyline></svg>
+            <span>Receive Screen</span>
+          </button>
+          <button class="action-tile-btn" data-target="share">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><polyline points="9 11 12 8 15 11"></polyline></svg>
+            <span>Share Screen</span>
+          </button>
+          <button class="action-tile-btn" data-target="files">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+            <span>Drop Files</span>
+          </button>
+          <button class="action-tile-btn" data-target="terminal">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            <span>Security Terminal</span>
           </button>
         </div>
+      </section>
 
-      </aside>
-
-    </div>
-
-    <!-- Soft Styled Scanner Overlay Modal -->
-    <div class="scanner-soft-modal" id="scannerModal">
-      <div class="scanner-card-box">
-        <div class="scanner-box-head">
-          <div class="pulsing-radar-badge">
-            <div class="radar-ping"></div>
-            🛡️
-          </div>
-          <div>
-            <h3>Security Guard Running</h3>
-            <p id="modalCurrentTarget">Inspecting repository tree...</p>
-          </div>
-          <button class="btn-pill-cancel" id="btnCancelScan">Stop</button>
-        </div>
-
-        <div class="soft-progress-track">
-          <div class="soft-progress-bar" id="modalProgressBar" style="width: 0%;"></div>
-        </div>
-        <div class="soft-progress-meta">
-          <span id="modalPercent">0%</span>
-          <span id="modalCount">0 / 0 Targets</span>
-        </div>
-
-        <div class="soft-console-panel">
-          <div class="console-head-bar">
-            <span>AUDIT TELEMETRY STREAM</span>
-            <span class="live-dot"></span>
-          </div>
-          <div class="console-logs" id="modalConsoleLogs">
-            <!-- Console lines -->
+      <!-- ================= SCREEN 3: RECEIVE SCREEN ================= -->
+      <section class="tab-pane" id="pane-receive">
+        <div class="stream-header-bar">
+          <h1 class="view-title">Receive screen</h1>
+          <div class="stream-toolbar">
+            <span class="stream-pill">1080p · 60 FPS</span>
+            <span class="stream-pill">6 ms</span>
+            <button class="dark-pill-btn" id="btnToggleFullscreen">Fullscreen</button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- GitHub Browser OAuth Device Modal -->
-    <div class="scanner-soft-modal" id="modalOAuthDevice" style="display:none; z-index: 9999;">
-      <div class="scanner-card-box" style="max-width: 480px; text-align: center; padding: 32px 28px;">
-        <div style="width: 58px; height: 58px; border-radius: 18px; background: rgba(0, 240, 255, 0.12); border: 1px solid rgba(0, 240, 255, 0.35); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px;">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <div class="screen-canvas-container">
+          <div class="screen-canvas-preview" id="remoteScreenCanvas">
+            <div class="screen-content-mock">
+              <div class="remote-topbar">
+                <span>🍎 Finder  File  Edit  View  Go  Window  Help</span>
+                <span>Tue 18:45  Ahasuns-Mac-mini</span>
+              </div>
+              <div class="remote-desktop-center">
+                <div class="mock-dock">
+                  <div class="dock-item">🖥️</div>
+                  <div class="dock-item">⚙️</div>
+                  <div class="dock-item">💻</div>
+                  <div class="dock-item">🌐</div>
+                  <div class="dock-item">📁</div>
+                </div>
+              </div>
+              <div class="cursor-pointer-sim" id="cursorSim">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#ffffff" stroke="#000000" stroke-width="1.5">
+                  <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
-        <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">GitHub Browser Authorization</h3>
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
-          Opening GitHub in your default browser. Enter this one-time code to authorize:
+      </section>
+
+      <!-- ================= SCREEN 4: SHARE SCREEN ================= -->
+      <section class="tab-pane" id="pane-share">
+        <h1 class="view-title">Share screen</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Display Source</h4>
+              <p class="cfg-desc">Choose which monitor or window to broadcast to Ahasuns-Mac-mini</p>
+            </div>
+            <select class="dark-select" id="selectDisplaySource">
+              <option value="disp1">Display 1 (2560x1440 144Hz Primary)</option>
+              <option value="disp2">Display 2 (1920x1080 60Hz Secondary)</option>
+              <option value="app">Active Application Window</option>
+            </select>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Broadcast Quality</h4>
+              <p class="cfg-desc">Dynamic hardware encoding (NVENC / QuickSync)</p>
+            </div>
+            <select class="dark-select">
+              <option>Ultra Low Latency (60 FPS)</option>
+              <option>High Definition (1080p 60 FPS)</option>
+              <option>Ultra HD (4K 60 FPS)</option>
+            </select>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Capture System Audio</h4>
+              <p class="cfg-desc">Stream stereo audio along with video feed</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+
+          <div style="margin-top: 18px; display: flex; gap: 12px;">
+            <button class="red-pill-btn" id="btnToggleShare">Start Sharing</button>
+            <button class="dark-pill-btn">Screen Settings</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 5: APPS ================= -->
+      <section class="tab-pane" id="pane-apps">
+        <h1 class="view-title">Apps</h1>
+        <p class="view-subtitle">Access and launch applications on remote or local workstation seamlessly.</p>
+
+        <div class="apps-grid">
+          <div class="app-card-item" data-app="vscode">
+            <div class="app-icon-box">💻</div>
+            <div class="app-info">
+              <span class="app-name">Visual Studio Code</span>
+              <span class="app-status">Available on Mac & PC</span>
+            </div>
+            <button class="dark-pill-btn btn-launch-app">Launch</button>
+          </div>
+
+          <div class="app-card-item" data-app="terminal">
+            <div class="app-icon-box">⌨️</div>
+            <div class="app-info">
+              <span class="app-name">Terminal & Zsh</span>
+              <span class="app-status">Host Shell Connected</span>
+            </div>
+            <button class="dark-pill-btn btn-launch-app">Open</button>
+          </div>
+
+          <div class="app-card-item" data-app="chrome">
+            <div class="app-icon-box">🌐</div>
+            <div class="app-info">
+              <span class="app-name">Google Chrome</span>
+              <span class="app-status">Sync Enabled</span>
+            </div>
+            <button class="dark-pill-btn btn-launch-app">Launch</button>
+          </div>
+
+          <div class="app-card-item" data-app="security">
+            <div class="app-icon-box">🛡️</div>
+            <div class="app-info">
+              <span class="app-name">Security Guard Threat Engine</span>
+              <span class="app-status">Engine Running · Protected</span>
+            </div>
+            <button class="dark-pill-btn btn-launch-app" style="color: #22c55e;">Run Triage</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 6: MOUSE ================= -->
+      <section class="tab-pane" id="pane-mouse">
+        <h1 class="view-title">Mouse</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Pointer Speed</h4>
+              <p class="cfg-desc">Adjust cursor travel acceleration across dual displays</p>
+            </div>
+            <input type="range" min="1" max="10" value="6" class="dark-slider" />
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Natural Scrolling</h4>
+              <p class="cfg-desc">Match macOS trackpad swipe direction</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Seamless Edge Hopping</h4>
+              <p class="cfg-desc">Jump mouse across screen edges instantly</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Pointer Test Pad</span>
+        </div>
+        <div class="interactive-test-pad" id="mouseTestPad">
+          <span>Move cursor inside this box to test smooth remote translation</span>
+          <div class="test-cursor-badge" id="testCursorBadge">X: 0, Y: 0</div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 7: KEYBOARD ================= -->
+      <section class="tab-pane" id="pane-keyboard">
+        <h1 class="view-title">Keyboard</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Remap macOS Command ⌘ to Windows Ctrl</h4>
+              <p class="cfg-desc">Seamless copy, paste, and undo shortcuts across OS</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Remap Option ⌥ to Alt</h4>
+              <p class="cfg-desc">Preserve standard IDE code navigation shortcuts</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Live Keystroke Listener</span>
+        </div>
+        <div class="interactive-test-pad" id="keyboardTestPad" tabindex="0">
+          <span>Click here and press keys on your keyboard to test cross-device key forwarding</span>
+          <div class="keystroke-display" id="keystrokeDisplay">Ready. Press any key...</div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 8: CLIPBOARD ================= -->
+      <section class="tab-pane" id="pane-clipboard">
+        <h1 class="view-title">Clipboard</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Universal Clipboard Auto-Sync</h4>
+              <p class="cfg-desc">Instantly synchronize text and images between Mac and PC</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Send to Remote Clipboard</span>
+        </div>
+        <div class="clipboard-input-bar">
+          <input type="text" class="dark-input" id="inputClipText" placeholder="Type text to send to remote clipboard..." />
+          <button class="red-pill-btn" id="btnSendClip">Send</button>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Recent History</span>
+        </div>
+        <div class="history-list" id="clipHistoryList">
+          <div class="history-item">
+            <span class="hist-text">https://github.com/Ahasun-h/SecurityGuard.git</span>
+            <span class="hist-time">Just now</span>
+          </div>
+          <div class="history-item">
+            <span class="hist-text">192.168.110.146</span>
+            <span class="hist-time">2 min ago</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 9: NOTIFICATIONS ================= -->
+      <section class="tab-pane" id="pane-notifications">
+        <div class="stream-header-bar">
+          <h1 class="view-title">Notifications</h1>
+          <button class="dark-pill-btn" id="btnClearNotifs">Clear All</button>
+        </div>
+
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Mirror macOS Alerts to Windows</h4>
+              <p class="cfg-desc">Forward messages, calendar invites, and system notifications</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="notif-feed" id="notifFeed">
+          <div class="notif-card-item">
+            <div class="notif-badge">🛡️</div>
+            <div class="notif-body">
+              <span class="notif-title">Workstation Integrity Verified</span>
+              <span class="notif-desc">Security Guard completed host scan: Zero threats found on PC.</span>
+              <span class="notif-time">Today 18:40</span>
+            </div>
+          </div>
+          <div class="notif-card-item">
+            <div class="notif-badge">🔗</div>
+            <div class="notif-body">
+              <span class="notif-title">Ahasuns-Mac-mini Connected</span>
+              <span class="notif-desc">Wi-Fi P2P direct link established (6 ms latency).</span>
+              <span class="notif-time">Today 18:32</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 10: FILE SHARING ================= -->
+      <section class="tab-pane" id="pane-files">
+        <h1 class="view-title">File Sharing</h1>
+        <p class="view-subtitle">High-speed peer-to-peer file drop (up to 85 MB/s on local Wi-Fi).</p>
+
+        <div class="dropzone-box" id="fileDropZone">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#6b7280" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span class="dropzone-text">Drag and drop files here to send instantly to Ahasuns-Mac-mini</span>
+          <button class="dark-pill-btn" id="btnBrowseFiles">Browse Files...</button>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Transfer Queue</span>
+        </div>
+        <div class="transfer-list">
+          <div class="transfer-item">
+            <div class="trans-meta">
+              <span class="trans-name">SecurityGuard-Clean-Build.zip</span>
+              <span class="trans-speed">Completed · 24.5 MB</span>
+            </div>
+            <span class="text-green-online">Done</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 11: AUDIO ================= -->
+      <section class="tab-pane" id="pane-audio">
+        <h1 class="view-title">Audio</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Stream Remote Audio to Windows</h4>
+              <p class="cfg-desc">Listen to Mac sounds and media playback through PC headphones/speakers</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Microphone Passthrough</h4>
+              <p class="cfg-desc">Use Windows headset mic as input for Mac conferencing apps</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" />
+              <span class="slider gray-switch"></span>
+            </label>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Audio Buffer Size</h4>
+              <p class="cfg-desc">Lower buffer for gaming; higher buffer for glitch-free music</p>
+            </div>
+            <span class="slider-val-label">20 ms</span>
+          </div>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Live VU Audio Level Meter</span>
+        </div>
+        <div class="vu-meter-wrap">
+          <div class="vu-channel">
+            <span class="vu-label">L</span>
+            <div class="vu-bar"><div class="vu-fill vu-anim-left"></div></div>
+          </div>
+          <div class="vu-channel">
+            <span class="vu-label">R</span>
+            <div class="vu-bar"><div class="vu-fill vu-anim-right"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 12: CAMERA ================= -->
+      <section class="tab-pane" id="pane-camera">
+        <h1 class="view-title">Camera</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Continuity Webcam Stream</h4>
+              <p class="cfg-desc">Use high-definition remote camera feed across computers</p>
+            </div>
+            <select class="dark-select">
+              <option>FaceTime HD Camera (Ahasuns-Mac-mini)</option>
+              <option>Integrated PC Camera</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="camera-preview-box">
+          <div class="cam-lens-sim">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#6b7280" stroke-width="1.5">
+              <path d="M23 7l-7 5 7 5V7z"></path>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+            <span>Live Camera Feed Active (1080p 30 FPS)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 13: REZUME ================= -->
+      <section class="tab-pane" id="pane-rezume">
+        <h1 class="view-title">ReZume</h1>
+        <p class="view-subtitle">Seamless workspace handoff. Restore open tabs and projects across devices with one click.</p>
+
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Save Current Workstation Snapshot</h4>
+              <p class="cfg-desc">Capture active coding workspaces, git branches, and browser windows</p>
+            </div>
+            <button class="red-pill-btn" id="btnTakeSnapshot">Save Snapshot</button>
+          </div>
+        </div>
+
+        <div class="group-header" style="margin-top: 24px;">
+          <span class="group-title">Available Sessions</span>
+        </div>
+        <div class="history-list">
+          <div class="history-item">
+            <div>
+              <span class="hist-text">Session: SecurityGuard Refactor & Defense Hub</span>
+              <p style="font-size: 11px; color: #9ca3af; margin-top: 2px;">3 open files · Git: main · Branch clean</p>
+            </div>
+            <button class="dark-pill-btn">Resume Here</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 14: TERMINAL (WITH SECURITY GUARD ENGINE) ================= -->
+      <section class="tab-pane" id="pane-terminal">
+        <div class="stream-header-bar">
+          <h1 class="view-title">Terminal & Security Shell</h1>
+          <div style="display: flex; gap: 8px;">
+            <button class="dark-pill-btn" id="btnTermScanPc">Run PC Malware Scan</button>
+            <button class="dark-pill-btn" id="btnClearTerm">Clear</button>
+          </div>
+        </div>
+
+        <div class="terminal-container">
+          <div class="terminal-body" id="termOutput">
+            <div class="term-line color-cyan">TwinDesk Security Terminal v2.4.0 [Dual-Core Screen & Threat Engine]</div>
+            <div class="term-line">Host: Ahasun (Windows 11 x64) | Remote: Ahasuns-Mac-mini</div>
+            <div class="term-line color-green">Status: Connected · Git Push Shield: Active · 0 Threats</div>
+            <div class="term-line color-dim">Type 'help', 'scan-pc', 'status', 'ping', or 'clear' to execute commands.</div>
+            <br/>
+          </div>
+          <div class="term-input-row">
+            <span class="term-prompt">TwinDesk:~$</span>
+            <input type="text" class="term-input" id="inputTerminalCmd" placeholder="Enter command..." />
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 15: MULTI-DEVICE ================= -->
+      <section class="tab-pane" id="pane-multidevice">
+        <h1 class="view-title">Multi-device</h1>
+        <p class="view-subtitle">Arrange your displays to define how mouse and windows move between devices.</p>
+
+        <div class="display-arrangement-box">
+          <div class="display-box-screen disp-left">
+            <span class="disp-title">1. Ahasun</span>
+            <span class="disp-res">2560 x 1440</span>
+          </div>
+          <div class="display-box-screen disp-right">
+            <span class="disp-title">2. Ahasuns-Mac-mini</span>
+            <span class="disp-res">1920 x 1080</span>
+          </div>
+        </div>
+
+        <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 14px;">
+          Drag displays to rearrange. Cursor transitions smoothly at shared edge.
         </p>
+      </section>
 
-        <div style="background: rgba(0, 0, 0, 0.05); border: 2px dashed rgba(0, 240, 255, 0.6); border-radius: 14px; padding: 18px 12px; margin-bottom: 16px;">
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 700;">Your One-Time Code</div>
-          <div id="oauthDeviceUserCode" style="font-family: 'JetBrains Mono', monospace; font-size: 34px; font-weight: 800; letter-spacing: 4px; color: #00b4d8;">
-            ••••-••••
+      <!-- ================= SCREEN 16: GENERAL ================= -->
+      <section class="tab-pane" id="pane-general">
+        <h1 class="view-title">General</h1>
+        <div class="group-card">
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Start TwinDesk on System Boot</h4>
+              <p class="cfg-desc">Automatically launch in background and connect to paired devices</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
           </div>
-          <div id="oauthCopyBadge" style="font-size: 12px; color: #10b981; font-weight: 700; margin-top: 6px;">
-            ✓ Copied to clipboard!
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Hardware Acceleration (GPU)</h4>
+              <p class="cfg-desc">Use GPU video decoder for ultra-low latency 60 FPS streaming</p>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" checked />
+              <span class="slider red-switch"></span>
+            </label>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <h4 class="cfg-label">Dark Theme Accent</h4>
+              <p class="cfg-desc">TwinDesk Signature Crimson Red (#ef4444)</p>
+            </div>
+            <div class="color-swatch-red"></div>
           </div>
         </div>
+      </section>
 
-        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
-          <button id="oauthOpenBrowserBtn" class="btn-pill-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; cursor: pointer; font-weight: 700;">
-            <span>Open Browser Again ↗</span>
-          </button>
+      <!-- ================= SCREEN 17: ABOUT ================= -->
+      <section class="tab-pane" id="pane-about">
+        <h1 class="view-title">About</h1>
+        <div class="group-card" style="text-align: center; padding: 36px 20px;">
+          <div class="about-logo-tile" style="margin: 0 auto 16px auto;">
+            <svg viewBox="0 0 28 28" width="32" height="32" fill="none">
+              <rect x="2" y="3" width="24" height="16" rx="2" stroke="#e5e7eb" stroke-width="2"/>
+              <line x1="9" y1="23" x2="19" y2="23" stroke="#e5e7eb" stroke-width="2"/>
+              <line x1="14" y1="19" x2="14" y2="23" stroke="#e5e7eb" stroke-width="2"/>
+              <path d="M13 8l3 8.5-2.2-.4-1.3 2.4-1.2-.6 1.3-2.4-2.1-.4L13 8z" fill="#ef4444"/>
+            </svg>
+          </div>
+          <h2 style="font-size: 20px; font-weight: 700; color: #ffffff;">TwinDesk</h2>
+          <p style="font-size: 13px; color: #9ca3af; margin-top: 4px;">Version 2.4.0 (Build 2026.11) Enterprise Edition</p>
+          <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Dual-Core Screen & Host Threat Defense Architecture</p>
+          <div style="margin-top: 24px;">
+            <button class="dark-pill-btn" id="btnCheckUpdates">Check for Updates</button>
+          </div>
         </div>
+      </section>
 
-        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">
-          <span class="live-dot" style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#00b4d8;"></span>
-          <span id="oauthStatusText">Waiting for you to authorize in your browser...</span>
+    </main>
+
+  </div>
+
+  <!-- QR Code Modal Dialog -->
+  <div class="modal-backdrop" id="qrModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Pair Phone with TwinDesk</span>
+        <button class="btn-close-modal" id="btnCloseQr">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <p style="font-size: 12.5px; color: #9ca3af; margin-bottom: 16px;">
+          Open TwinDesk app on your iPhone or Android and scan this pairing code:
+        </p>
+        <div class="qr-code-box">
+          <!-- Rendered SVG QR Matrix Pattern -->
+          <svg viewBox="0 0 160 160" width="160" height="160" fill="#ffffff">
+            <rect width="160" height="160" fill="#ffffff"/>
+            <!-- Top-Left Corner Box -->
+            <rect x="15" y="15" width="40" height="40" fill="#000000"/>
+            <rect x="22" y="22" width="26" height="26" fill="#ffffff"/>
+            <rect x="27" y="27" width="16" height="16" fill="#000000"/>
+            <!-- Top-Right Corner Box -->
+            <rect x="105" y="15" width="40" height="40" fill="#000000"/>
+            <rect x="112" y="22" width="26" height="26" fill="#ffffff"/>
+            <rect x="117" y="27" width="16" height="16" fill="#000000"/>
+            <!-- Bottom-Left Corner Box -->
+            <rect x="15" y="105" width="40" height="40" fill="#000000"/>
+            <rect x="22" y="112" width="26" height="26" fill="#ffffff"/>
+            <rect x="27" y="117" width="16" height="16" fill="#000000"/>
+            <!-- Dynamic Pattern Bits -->
+            <rect x="65" y="20" width="10" height="10" fill="#000000"/>
+            <rect x="85" y="20" width="10" height="10" fill="#000000"/>
+            <rect x="65" y="40" width="15" height="10" fill="#000000"/>
+            <rect x="20" y="65" width="10" height="15" fill="#000000"/>
+            <rect x="40" y="75" width="10" height="10" fill="#000000"/>
+            <rect x="60" y="60" width="12" height="12" fill="#000000"/>
+            <rect x="80" y="70" width="15" height="10" fill="#000000"/>
+            <rect x="105" y="65" width="12" height="12" fill="#000000"/>
+            <rect x="130" y="75" width="12" height="10" fill="#000000"/>
+            <rect x="65" y="90" width="10" height="15" fill="#000000"/>
+            <rect x="85" y="95" width="15" height="10" fill="#000000"/>
+            <rect x="110" y="90" width="10" height="10" fill="#000000"/>
+            <rect x="130" y="95" width="10" height="15" fill="#000000"/>
+            <rect x="65" y="115" width="15" height="15" fill="#000000"/>
+            <rect x="90" y="115" width="10" height="10" fill="#000000"/>
+            <rect x="115" y="120" width="15" height="10" fill="#000000"/>
+            <rect x="80" y="135" width="20" height="10" fill="#000000"/>
+            <rect x="110" y="135" width="15" height="10" fill="#000000"/>
+          </svg>
         </div>
-
-        <button class="btn-pill-cancel" id="btnCancelOAuthDevice" style="width: 100%; padding: 10px; font-weight: 600;">Cancel</button>
+        <p style="font-family: monospace; font-size: 13px; color: #ffffff; margin-top: 14px;">
+          PAIR KEY: <span style="color: #ef4444; font-weight: bold;">TD-9842-AHASUN</span>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="dark-pill-btn" id="btnDoneQr" style="width: 100%;">Done</button>
       </div>
     </div>
-
   </div>
 
   <script src="app.js"></script>

@@ -54,10 +54,10 @@ function createWindow() {
     height: 890,
     minWidth: 1080,
     minHeight: 740,
-    backgroundColor: '#f7f4ee',
-    title: 'Security Guard Desktop - Defense & Intelligence Hub',
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 18, y: 14 },
+    backgroundColor: '#121214',
+    title: 'TwinDesk',
+    frame: false,
+    titleBarStyle: 'hidden',
     icon: process.platform === 'win32'
       ? path.join(__dirname, 'assets', 'icon.ico')
       : path.join(__dirname, 'assets', 'icon.png'),
@@ -108,6 +108,15 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+ipcMain.on('window:minimize', () => { if (mainWindow) mainWindow.minimize(); });
+ipcMain.on('window:maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+  }
+});
+ipcMain.on('window:close', () => { if (mainWindow) mainWindow.close(); });
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
