@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('guardAPI', {
+  // Window Controls
+  minimizeWindow: () => ipcRenderer.send('window:minimize'),
+  maximizeWindow: () => ipcRenderer.send('window:maximize'),
+  closeWindow: () => ipcRenderer.send('window:close'),
+
   // Guard Engine & Shield
   checkGuardStatus: () => ipcRenderer.invoke('guard:check-status'),
   getDaemonStatus: () => ipcRenderer.invoke('guard:get-daemon-status'),
